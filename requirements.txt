@@ -1,0 +1,32 @@
+# Bibliothèques Python nécessaires pour RepairLens
+# Installez tout avec : python -m pip install -r requirements.txt
+
+# --- Serveur Web ---
+fastapi                   # Framework web rapide et moderne
+uvicorn                   # Serveur pour lancer FastAPI
+
+# --- Base de données PostgreSQL ---
+sqlalchemy                # ORM pour gérer la base de données
+psycopg[binary]           # Connecteur PostgreSQL compatible Python 3.14
+alembic                   # Migrations de base de données
+
+# --- Variables d'environnement ---
+python-dotenv             # Charger les variables depuis .env
+
+# --- Traitement d'images ---
+Pillow                    # Manipulation d'images (PIL)
+opencv-python             # Traitement vidéo en temps réel
+numpy                     # Calculs numériques sur les masques
+
+# --- Appels API externes ---
+requests                  # Appels HTTP (Baseten, Meta API)
+httpx                     # Appels HTTP asynchrones
+
+# --- Validation des données ---
+pydantic                  # Validation automatique des données entrantes
+
+# --- WebSockets (streaming vidéo temps réel) ---
+websockets                # Communication temps réel avec le frontend
+
+# --- Encodage des images ---
+python-multipart          # Upload de fichiers/images dans FastAPI

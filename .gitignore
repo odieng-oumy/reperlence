@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Documents d'étude personnels
+*.docx
+frontend/assets/motion/*.mp4
+frontend/assets/motion/*.ogg
