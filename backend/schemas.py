@@ -111,3 +111,20 @@ class CameraFrameRequest(BaseModel):
 
 class ModifierEtatRequest(BaseModel):
     etat: str = Field(..., pattern="^(detecte|suspect_ia|confirme_user|normal|inconnu|defectueux)$")
+
+
+class DetourerRequest(BaseModel):
+    image_base64: str = Field(..., min_length=10, max_length=10_000_000)
+
+
+class DefautExistant(BaseModel):
+    vue: str = Field(default="", max_length=100)
+    nom_court: str = Field(default="", max_length=100)
+
+
+class AnalyserVueRequest(BaseModel):
+    image_base64: str = Field(..., min_length=10, max_length=10_000_000)
+    type_appareil: str = Field(default="appareil", max_length=200)
+    angle_label: str = Field(default="Face avant", max_length=100)
+    defauts_existants: list[DefautExistant] = Field(default=[], max_length=50)
+    langue: str = Field(default="fr", pattern="^(fr|en)$")

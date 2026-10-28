@@ -9,12 +9,18 @@ from sqlalchemy.orm import Session
 
 from backend.database.database import get_db
 from backend.database import crud
-from backend.schemas import ImageAnalyseRequest, SegmenterRequest, SegmenterPointRequest, VideoAnalyseRequest, ModifierEtatRequest
+from backend.schemas import (
+    ImageAnalyseRequest, SegmenterRequest, SegmenterPointRequest,
+    VideoAnalyseRequest, ModifierEtatRequest,
+    DetourerRequest, AnalyserVueRequest
+)
 from backend.services.sam_service import (
     segmenter_image,
     segmenter_point_precis,
     segmenter_video_frames,
-    identifier_appareil_et_probleme_sur_image
+    identifier_appareil_et_probleme_sur_image,
+    detourer_appareil,
+    analyser_vue
 )
 
 router = APIRouter()
@@ -271,4 +277,47 @@ async def analyser_video(donnees: VideoAnalyseRequest, db: Session = Depends(get
         "nombre_frames_analysees": resultat_video["nombre_frames_analysees"],
         "resume_mouvement": resultat_video["resume_mouvement"],
         "composants": composants_sauvegardes
+    })
+
+
+# ---------------------------------------------------------------
+# Route 7 : Detourer l'appareil (fond transparent via SAM 2)
+# ---------------------------------------------------------------
+@router.post("/detourer")
+async def detourer_image(donnees: DetourerRequest):
+    try:
+        resultat = await detourer_appareil(donnees.image_base64)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Erreur detourage SAM 2 : {str(e)}")
+
+    if resultat.get("erreur"):
+        raise HTTPException(status_code=503, detail=resultat["erreur"])
+
+    return JSONResponse(content={
+        "statut": "succes",
+        "masque_base64": resultat["masque_base64"],
+        "temps_ms": resultat["temps_ms"]
+    })
+
+
+# ---------------------------------------------------------------
+# Route 8 : Analyser une vue pour detecter de nouveaux defauts
+# ---------------------------------------------------------------
+@router.post("/analyser-vue")
+async def analyser_vue_route(donnees: AnalyserVueRequest):
+    try:
+        resultat = await analyser_vue(
+            donnees.image_base64,
+            donnees.type_appareil,
+            donnees.angle_label,
+            [d.model_dump() for d in donnees.defauts_existants],
+            donnees.langue
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Erreur analyse vue : {str(e)}")
+
+    return JSONResponse(content={
+        "statut": "succes",
+        "defauts": resultat.get("defauts", []),
+        "skip": resultat.get("skip", False)
     })

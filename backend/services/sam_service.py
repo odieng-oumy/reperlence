@@ -498,6 +498,129 @@ Respond ONLY in valid JSON:
     }
 
 
+# ===============================================================
+# Detourage — Extraire le masque principal de l'appareil
+# ===============================================================
+
+_last_image_hash = None
+_last_defauts_result = None
+
+
+def _image_hash_simple(b64_str: str) -> str:
+    import hashlib
+    return hashlib.md5(b64_str[:2000].encode()).hexdigest()
+
+
+async def detourer_appareil(image_base64: str) -> dict:
+    import time
+    b64_propre = _nettoyer_b64(image_base64)
+    if not b64_propre:
+        return {"masque_base64": "", "temps_ms": 0, "erreur": "No image provided"}
+
+    if not _is_sam2_available():
+        return {"masque_base64": "", "temps_ms": 0, "erreur": "SAM 2 not available"}
+
+    import torch
+    from sam2.sam2_image_predictor import SAM2ImagePredictor
+
+    t0 = time.time()
+
+    img_np = _b64_to_numpy(b64_propre)
+    h, w = img_np.shape[:2]
+
+    predictor = SAM2ImagePredictor(_sam2_model)
+    with torch.no_grad():
+        predictor.set_image(img_np)
+        center_point = np.array([[w // 2, h // 2]])
+        masks, scores, _ = predictor.predict(
+            point_coords=center_point,
+            point_labels=np.array([1]),
+            multimask_output=True
+        )
+
+    best_idx = int(scores.argmax())
+    mask = masks[best_idx]
+
+    rgba = np.zeros((h, w, 4), dtype=np.uint8)
+    rgba[:, :, :3] = img_np
+    rgba[:, :, 3] = (mask * 255).astype(np.uint8)
+
+    mask_img = Image.fromarray(rgba, "RGBA")
+    buf = BytesIO()
+    mask_img.save(buf, format="PNG")
+    masque_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    elapsed = int((time.time() - t0) * 1000)
+    print(f"[SAM2 DETOURAGE] {elapsed}ms — mask shape {h}x{w}, score={scores[best_idx]:.3f}")
+
+    return {
+        "masque_base64": masque_b64,
+        "temps_ms": elapsed,
+    }
+
+
+async def analyser_vue(
+    image_base64: str,
+    type_appareil: str,
+    angle_label: str,
+    defauts_existants: list,
+    langue: str = "fr"
+) -> dict:
+    global _last_image_hash, _last_defauts_result
+
+    b64_propre = _nettoyer_b64(image_base64)
+    if not _is_api_configured() or not b64_propre:
+        return {"defauts": [], "erreur": "API not configured or no image"}
+
+    img_hash = _image_hash_simple(b64_propre)
+    if img_hash == _last_image_hash and _last_defauts_result is not None:
+        print(f"[ANALYSE VUE] Image unchanged, skipping API call")
+        return {"defauts": [], "skip": True}
+
+    _last_image_hash = img_hash
+
+    is_en = (langue == "en")
+    lang_instr = "Respond entirely in English." if is_en else "Reponds entierement en francais."
+
+    existing_str = ""
+    if defauts_existants:
+        existing_str = "\n".join([f"- {d.get('vue','')}: {d.get('nom_court','')}" for d in defauts_existants])
+        existing_str = f"\nDefects ALREADY found (do NOT repeat these):\n{existing_str}\n"
+
+    prompt = f"""{lang_instr}
+You are an expert device repair technician examining a {type_appareil}.
+Current view: {angle_label}.
+{existing_str}
+Look at this image carefully. List ONLY NEW visible defects or damage you can see from this specific angle.
+Keep component names short (4 words max). Only report what you actually see — no speculation.
+If you see no new defect, return an empty list.
+
+Respond ONLY in valid JSON:
+{{
+  "defauts": [
+    {{
+      "nom_court": "Cracked screen",
+      "description": "Visible crack across the display",
+      "composant": "Screen"
+    }}
+  ]
+}}"""
+
+    try:
+        raw = await _call_vision(prompt, b64_propre, max_tokens=1500)
+        parsed = _extraire_json(raw)
+        if isinstance(parsed, dict):
+            defauts = parsed.get("defauts", [])
+            for d in defauts:
+                d["vue"] = angle_label
+            _last_defauts_result = defauts
+            return {"defauts": defauts}
+    except Exception as e:
+        print(f"[ANALYSE VUE] Error: {e}")
+
+    return {"defauts": [], "erreur": str(e) if 'e' in dir() else "Unknown error"}
+
+
 async def segmenter_video_frames(frames_base64: list, type_appareil: str = "appareil") -> dict:
     if not _is_api_configured() and not _is_sam2_available():
         raise RuntimeError("Meta AI API key not configured. Set META_API_KEY in .env")
