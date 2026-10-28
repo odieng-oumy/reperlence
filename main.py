@@ -29,7 +29,7 @@ Base.metadata.create_all(bind=engine)
 # ---------------------------------------------------------------
 app = FastAPI(
     title="RepairLens API",
-    description="Assistant IA de reparation physique en temps reel avec SAM 3.1 et Muse Spark",
+    description="AI-powered device repair assistant — See the Fix. Built with Meta SAM 2 and Muse Spark.",
     version="1.0.0"
 )
 
@@ -38,7 +38,7 @@ app = FastAPI(
 # ---------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # En production, mettre l'URL exacte du frontend
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,7 +49,7 @@ app.add_middleware(
 # ---------------------------------------------------------------
 if routes_disponibles:
     app.include_router(camera.router,       prefix="/api/camera",       tags=["Camera"])
-    app.include_router(segmentation.router, prefix="/api/segmentation", tags=["Segmentation SAM 3.1"])
+    app.include_router(segmentation.router, prefix="/api/segmentation", tags=["Segmentation SAM 2"])
     app.include_router(diagnostic.router,   prefix="/api/diagnostic",   tags=["Diagnostic Muse Spark"])
     app.include_router(history.router,      prefix="/api/history",      tags=["Historique"])
 
@@ -80,14 +80,3 @@ def lire_accueil():
         return FileResponse("frontend/index.html")
     return {"message": "Serveur RepairLens actif — Fondations et Base de donnees PostgreSQL"}
 
-# ---------------------------------------------------------------
-# Route de sante : verifier que le serveur fonctionne
-# ---------------------------------------------------------------
-@app.get("/api/health", tags=["Sante"])
-def verifier_sante():
-    return {
-        "statut": "ok",
-        "application": "RepairLens",
-        "version": "1.0.0",
-        "message": "Le serveur fonctionne correctement"
-    }

@@ -220,6 +220,10 @@ __marimo__/
 .streamlit/secrets.toml
 
 
+# SAM 2 model checkpoints (too large for git)
+models/*.pt
+models/*.pth
+
 # Documents d'étude personnels
 *.docx
 frontend/assets/motion/*.mp4
