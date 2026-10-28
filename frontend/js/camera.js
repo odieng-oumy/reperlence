@@ -23,6 +23,9 @@ let questionsActuelles    = [];
 let etapesActuelles       = [];
 let indexEtapeActive      = 0;
 let historiqueMessages    = [];
+let defautsParVue         = [];
+let masqueDetourageUrl    = null;
+let dernierAnalyseVueTs   = 0;
 let voixIAActive          = true;
 let reconnaissanceEnCours = null;
 
@@ -1144,12 +1147,16 @@ async function lancerAnalyseComplete() {
 // =============================================================
 function afficherEcranVisionSAM() {
     afficherEcran('screen-ai-vision');
+    defautsParVue = [];
+    mettreAJourListeDefauts();
 
     const imgEl = document.getElementById('vision-main-image');
     const vidEl = document.getElementById('vision-main-video');
+    const maskCanvas = document.getElementById('vision-mask-canvas');
 
     if (estModeVideo && videoObjectUrl) {
         imgEl.style.display = 'none';
+        maskCanvas.style.display = 'none';
         vidEl.style.display = 'block';
         vidEl.src = videoObjectUrl;
         vidEl.play().catch(() => {});
@@ -1158,15 +1165,95 @@ function afficherEcranVisionSAM() {
         imgEl.style.display = 'block';
         if (imageDataUrl) {
             imgEl.src = imageDataUrl;
-        } else {
-            imgEl.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="360"><rect width="100%" height="100%" fill="%230b131e"/><text x="50%" y="50%" fill="%2300f0ff" font-family="sans-serif" font-size="16" text-anchor="middle">SAM 2 Vision Active</text></svg>';
+            lancerDetourage(imageBase64);
         }
     }
 
     mettreAJourFicheComposant(composantSelectionne);
-
-    // Lancer automatiquement l'inspection rotative IA des 4 coins en direct !
     lancerInspectionRotativeIA();
+}
+
+async function lancerDetourage(b64) {
+    if (!b64) return;
+    const maskCanvas = document.getElementById('vision-mask-canvas');
+    try {
+        const res = await fetch('/api/segmentation/detourer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_base64: b64 })
+        });
+        const data = await res.json();
+        if (data.masque_base64) {
+            masqueDetourageUrl = 'data:image/png;base64,' + data.masque_base64;
+            dessinerMasqueDetoure(masqueDetourageUrl);
+            afficherToast(
+                getLangue() === 'fr'
+                    ? `Appareil detoure en ${data.temps_ms}ms`
+                    : `Device isolated in ${data.temps_ms}ms`,
+                ''
+            );
+        }
+    } catch (err) {
+        console.error('[DETOURAGE]', err);
+    }
+}
+
+function dessinerMasqueDetoure(masqueUrl) {
+    const imgEl = document.getElementById('vision-main-image');
+    const maskCanvas = document.getElementById('vision-mask-canvas');
+    if (!imgEl || !maskCanvas) return;
+
+    const maskImg = new Image();
+    maskImg.onload = function() {
+        maskCanvas.width = maskImg.width;
+        maskCanvas.height = maskImg.height;
+        maskCanvas.style.display = 'block';
+        const ctx = maskCanvas.getContext('2d');
+
+        ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        ctx.drawImage(maskImg, 0, 0);
+
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 8;
+
+        const imageData = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        const d = imageData.data;
+        const contourCanvas = document.createElement('canvas');
+        contourCanvas.width = maskCanvas.width;
+        contourCanvas.height = maskCanvas.height;
+        const cctx = contourCanvas.getContext('2d');
+
+        for (let y = 1; y < maskCanvas.height - 1; y++) {
+            for (let x = 1; x < maskCanvas.width - 1; x++) {
+                const idx = (y * maskCanvas.width + x) * 4;
+                const a = d[idx + 3];
+                if (a > 128) {
+                    const neighbors = [
+                        d[((y-1)*maskCanvas.width+x)*4+3],
+                        d[((y+1)*maskCanvas.width+x)*4+3],
+                        d[(y*maskCanvas.width+x-1)*4+3],
+                        d[(y*maskCanvas.width+x+1)*4+3]
+                    ];
+                    if (neighbors.some(n => n < 128)) {
+                        cctx.fillStyle = '#00f0ff';
+                        cctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+        }
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 12;
+        ctx.drawImage(contourCanvas, 0, 0);
+        ctx.shadowBlur = 0;
+
+        imgEl.style.opacity = '0.15';
+    };
+    maskImg.src = masqueUrl;
 }
 
 function getElementMediaActif() {
@@ -1175,7 +1262,6 @@ function getElementMediaActif() {
     return (estModeVideo && vidEl.style.display !== 'none') ? vidEl : imgEl;
 }
 
-// SUPER-POUVOIR VISUEL : L'IA tourne l'image/vidéo et inspecte chaque coin sous les yeux de l'utilisateur
 async function lancerInspectionRotativeIA() {
     const scannerOverlay = document.getElementById('ai-live-scanner');
     const statusText     = document.getElementById('scanner-status-text');
@@ -1183,28 +1269,28 @@ async function lancerInspectionRotativeIA() {
     const reticle        = document.getElementById('scanner-reticle');
     const markersLayer   = document.getElementById('ar-markers-container');
     const mediaEl        = getElementMediaActif();
+    const isFr = getLangue() === 'fr';
 
     if (!scannerOverlay || !mediaEl) {
         dessinerMarqueursSAM();
         return;
     }
 
-    // Masquer les marqueurs pendant que l'IA tourne et scanne tous les coins
     markersLayer.style.opacity = '0';
     scannerOverlay.classList.add('scanning');
 
-    const etapesCoins = getLangue() === 'fr'
+    const etapesCoins = isFr
         ? [
-            { top: '12%', left: '12%', transform: 'scale(1.22) rotate(12deg) translate(8%, 8%)',   angle: '90° SCAN',  texte: 'IA : Rotation & Inspection Coin Haut-Gauche (1/4)...' },
-            { top: '12%', left: '62%', transform: 'scale(1.25) rotate(90deg) translate(-8%, 8%)',  angle: '180° SCAN', texte: 'IA : Rotation 90° & Analyse Coin Haut-Droit (2/4)...' },
-            { top: '58%', left: '62%', transform: 'scale(1.25) rotate(180deg) translate(-8%, -8%)', angle: '270° SCAN', texte: 'IA : Rotation 180° & Vérification Coin Bas-Droit (3/4)...' },
-            { top: '58%', left: '12%', transform: 'scale(1.22) rotate(270deg) translate(8%, -8%)',  angle: '360° SCAN', texte: 'IA : Rotation 270° & Scan Coin Bas-Gauche (4/4)...' }
+            { top: '12%', left: '12%', transform: 'scale(1.22) rotate(12deg) translate(8%, 8%)',    angle: '90° SCAN',  texte: 'Analyse face avant...', vueLabel: 'Face avant' },
+            { top: '12%', left: '62%', transform: 'scale(1.25) rotate(90deg) translate(-8%, 8%)',   angle: '180° SCAN', texte: 'Analyse cote droit...', vueLabel: 'Cote droit' },
+            { top: '58%', left: '62%', transform: 'scale(1.25) rotate(180deg) translate(-8%, -8%)', angle: '270° SCAN', texte: 'Analyse face arriere...', vueLabel: 'Face arriere' },
+            { top: '58%', left: '12%', transform: 'scale(1.22) rotate(270deg) translate(8%, -8%)',  angle: '360° SCAN', texte: 'Analyse cote gauche...', vueLabel: 'Cote gauche' }
           ]
         : [
-            { top: '12%', left: '12%', transform: 'scale(1.22) rotate(12deg) translate(8%, 8%)',   angle: '90° SCAN',  texte: 'AI Rotating & Inspecting Top-Left Corner (1/4)...' },
-            { top: '12%', left: '62%', transform: 'scale(1.25) rotate(90deg) translate(-8%, 8%)',  angle: '180° SCAN', texte: 'AI Rotating 90° — Top-Right Corner (2/4)...' },
-            { top: '58%', left: '62%', transform: 'scale(1.25) rotate(180deg) translate(-8%, -8%)', angle: '270° SCAN', texte: 'AI Rotating 180° — Bottom-Right Corner (3/4)...' },
-            { top: '58%', left: '12%', transform: 'scale(1.22) rotate(270deg) translate(8%, -8%)',  angle: '360° SCAN', texte: 'AI Rotating 270° — Bottom-Left Corner (4/4)...' }
+            { top: '12%', left: '12%', transform: 'scale(1.22) rotate(12deg) translate(8%, 8%)',    angle: '90° SCAN',  texte: 'Analyzing front view...', vueLabel: 'Front' },
+            { top: '12%', left: '62%', transform: 'scale(1.25) rotate(90deg) translate(-8%, 8%)',   angle: '180° SCAN', texte: 'Analyzing right side...', vueLabel: 'Right side' },
+            { top: '58%', left: '62%', transform: 'scale(1.25) rotate(180deg) translate(-8%, -8%)', angle: '270° SCAN', texte: 'Analyzing back view...', vueLabel: 'Back' },
+            { top: '58%', left: '12%', transform: 'scale(1.22) rotate(270deg) translate(8%, -8%)',  angle: '360° SCAN', texte: 'Analyzing left side...', vueLabel: 'Left side' }
           ];
 
     for (const coin of etapesCoins) {
@@ -1214,10 +1300,33 @@ async function lancerInspectionRotativeIA() {
         angleBadge.textContent  = coin.angle;
         mediaEl.style.transform = coin.transform;
         mediaEl.style.filter    = 'contrast(1.15) brightness(1.08)';
-        await new Promise(r => setTimeout(r, 700));
+
+        if (imageBase64) {
+            try {
+                const res = await fetch('/api/segmentation/analyser-vue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_base64: imageBase64,
+                        type_appareil: appareilActuel,
+                        angle_label: coin.vueLabel,
+                        defauts_existants: defautsParVue,
+                        langue: getLangue()
+                    })
+                });
+                const data = await res.json();
+                if (data.defauts && data.defauts.length > 0) {
+                    defautsParVue.push(...data.defauts);
+                    mettreAJourListeDefauts();
+                }
+            } catch (err) {
+                console.error('[ANALYSE VUE]', err);
+            }
+        } else {
+            await new Promise(r => setTimeout(r, 700));
+        }
     }
 
-    // Revenir à la position normale (360° terminé) et afficher les composants détectés
     angleRotationActuel     = 0;
     mediaEl.style.transform = 'scale(1) rotate(0deg) translate(0, 0)';
     mediaEl.style.filter    = 'none';
@@ -1225,21 +1334,53 @@ async function lancerInspectionRotativeIA() {
     markersLayer.style.opacity = '1';
     dessinerMarqueursSAM();
 
+    const nbDefauts = defautsParVue.length;
     afficherToast(
-        getLangue() === 'fr'
-            ? `Inspection 360° des 4 coins terminée : ${composantsDetectes.length} composants isolés !`
-            : `360° 4-Corner AI Scan complete: ${composantsDetectes.length} components localized!`,
+        isFr
+            ? `Inspection 360° terminee : ${composantsDetectes.length} composants, ${nbDefauts} defaut${nbDefauts > 1 ? 's' : ''} detecte${nbDefauts > 1 ? 's' : ''}`
+            : `360° Scan complete: ${composantsDetectes.length} components, ${nbDefauts} defect${nbDefauts > 1 ? 's' : ''} found`,
         ''
     );
 }
 
-function tournerMedia90Degres() {
+async function tournerMedia90Degres() {
     angleRotationActuel = (angleRotationActuel + 90) % 360;
     const mediaEl = getElementMediaActif();
     if (mediaEl) {
         mediaEl.style.transform = `rotate(${angleRotationActuel}deg) scale(1.05)`;
     }
-    afficherToast(`Rotation : ${angleRotationActuel}°`, '↻');
+
+    const isFr = getLangue() === 'fr';
+    const vueLabels = isFr
+        ? { 0: 'Face avant', 90: 'Cote droit', 180: 'Face arriere', 270: 'Cote gauche' }
+        : { 0: 'Front', 90: 'Right side', 180: 'Back', 270: 'Left side' };
+    const vueLabel = vueLabels[angleRotationActuel] || `${angleRotationActuel}°`;
+
+    afficherToast(`${isFr ? 'Rotation' : 'Rotated'} : ${angleRotationActuel}° — ${vueLabel}`, '');
+
+    if (imageBase64 && (Date.now() - dernierAnalyseVueTs > 3000)) {
+        dernierAnalyseVueTs = Date.now();
+        try {
+            const res = await fetch('/api/segmentation/analyser-vue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image_base64: imageBase64,
+                    type_appareil: appareilActuel,
+                    angle_label: vueLabel,
+                    defauts_existants: defautsParVue,
+                    langue: getLangue()
+                })
+            });
+            const data = await res.json();
+            if (data.defauts && data.defauts.length > 0) {
+                defautsParVue.push(...data.defauts);
+                mettreAJourListeDefauts();
+            }
+        } catch (err) {
+            console.error('[ANALYSE VUE ROTATION]', err);
+        }
+    }
 }
 
 function reinitialiserVueMedia() {
@@ -1248,6 +1389,39 @@ function reinitialiserVueMedia() {
     if (mediaEl) {
         mediaEl.style.transform = 'rotate(0deg) scale(1)';
     }
+    const imgEl = document.getElementById('vision-main-image');
+    if (imgEl) imgEl.style.opacity = '1';
+    const maskCanvas = document.getElementById('vision-mask-canvas');
+    if (maskCanvas) maskCanvas.style.display = 'none';
+}
+
+function mettreAJourListeDefauts() {
+    const panel = document.getElementById('defauts-par-vue');
+    const liste = document.getElementById('defauts-liste');
+    const titre = document.getElementById('defauts-titre');
+    if (!panel || !liste) return;
+
+    const isFr = getLangue() === 'fr';
+
+    if (defautsParVue.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    panel.style.display = 'block';
+    titre.textContent = isFr
+        ? `${defautsParVue.length} DEFAUT${defautsParVue.length > 1 ? 'S' : ''} DETECTE${defautsParVue.length > 1 ? 'S' : ''}`
+        : `${defautsParVue.length} DEFECT${defautsParVue.length > 1 ? 'S' : ''} FOUND`;
+
+    liste.innerHTML = defautsParVue.map(d => `
+        <div class="defaut-item">
+            <span class="defaut-vue-badge">${d.vue || '?'}</span>
+            <div>
+                <div class="defaut-text">${d.nom_court || d.description || ''}</div>
+                ${d.composant ? `<div class="defaut-comp">${d.composant}</div>` : ''}
+            </div>
+        </div>
+    `).join('');
 }
 
 function dessinerMarqueursSAM() {
