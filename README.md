@@ -27,7 +27,9 @@ Over **50 million tons** of electronic waste are discarded every year. Most brok
 
 | Feature | Description |
 |:---|:---|
-| **AI Vision Analysis** | SAM 2 (Segment Anything Model 2) segments real component regions, then Muse Spark 1.3 identifies each part |
+| **Background Removal** | SAM 2 extracts the device from its background in real-time — the device appears isolated with a glowing cyan outline on the dark interface |
+| **AI Vision Analysis** | SAM 2 segments real component regions, then Muse Spark 1.3 identifies each part |
+| **360° Defect Scan** | The AI inspects 4 angles and builds a live defect list grouped by view (e.g. "Front: cracked screen", "Right side: dented casing") — each defect comes from a real API call, nothing simulated |
 | **Component Segmentation** | Touch any part on the image — SAM 2 isolates the exact region, Muse Spark names it in plain language |
 | **Smart Diagnosis** | Multi-turn conversation: the AI asks targeted questions before generating a diagnosis |
 | **Guided Repair** | Step-by-step repair instructions with difficulty rating, tools needed, and safety warnings |
