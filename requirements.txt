@@ -18,6 +18,11 @@ Pillow                    # Manipulation d'images (PIL)
 opencv-python             # Traitement vidéo en temps réel
 numpy                     # Calculs numériques sur les masques
 
+# --- SAM 2 (Segment Anything Model 2 — Meta) ---
+torch --index-url https://download.pytorch.org/whl/cpu    # PyTorch CPU
+torchvision --index-url https://download.pytorch.org/whl/cpu
+sam-2 @ git+https://github.com/facebookresearch/sam2.git  # Meta SAM 2
+
 # --- Appels API externes ---
 requests                  # Appels HTTP (Baseten, Meta API)
 httpx                     # Appels HTTP asynchrones
