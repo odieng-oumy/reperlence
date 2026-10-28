@@ -14,7 +14,7 @@ from .database import Base
 # Enumération : état d'un composant détecté
 # ---------------------------------------------------------------
 class EtatComposant(str, enum.Enum):
-    # Niveau 1 : SAM 3.1 a détecté le composant, état inconnu
+    # Niveau 1 : AI Vision a détecté le composant, état inconnu
     DETECTE         = "detecte"
     # Niveau 2 : Muse Spark suppose que ce composant est défectueux
     SUSPECT_IA      = "suspect_ia"
@@ -66,7 +66,7 @@ class SessionReparation(Base):
 
 # ---------------------------------------------------------------
 # TABLE 2 : composants_detectes
-# Un composant = une pièce détectée par SAM 3.1 dans une image
+# Un composant = une pièce détectée par AI Vision dans une image
 # ---------------------------------------------------------------
 class ComposantDetecte(Base):
     __tablename__ = "composants_detectes"
@@ -82,7 +82,7 @@ class ComposantDetecte(Base):
     pos_y       = Column(Float, nullable=True)   # Coordonnée Y du centre
     largeur     = Column(Float, nullable=True)   # Largeur du masque
     hauteur     = Column(Float, nullable=True)   # Hauteur du masque
-    confiance   = Column(Float, nullable=True)   # Score de confiance SAM 3.1 (0 à 1)
+    confiance   = Column(Float, nullable=True)   # Score de confiance AI Vision (0 à 1)
 
     etat        = Column(String(50), default=EtatComposant.INCONNU)  # normal / defectueux / inconnu
     date_detect = Column(DateTime(timezone=True), server_default=func.now())

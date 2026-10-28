@@ -20,7 +20,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:postgres
 # Créer le moteur de connexion PostgreSQL
 engine = create_engine(
     DATABASE_URL,
-    echo=True  # Affiche les requêtes SQL dans le terminal (utile pour déboguer)
+    echo=False
 )
 
 # Créer une fabrique de sessions (pour interagir avec la DB)

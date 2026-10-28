@@ -102,7 +102,7 @@ def ajouter_composant(db: Session, session_id: int, nom: str,
                       confiance: float, etat: str = "inconnu",
                       description: str = None):
     """
-    Ajoute un composant détecté par SAM 3.1 dans la base de données.
+    Ajoute un composant détecté par AI Vision dans la base de données.
     Stocke sa position spatiale pour le suivi entre les images.
     """
     composant = models.ComposantDetecte(
