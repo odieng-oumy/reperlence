@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepairLens — Film Publicitaire Motion Design</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #070b19;
+            --bg-indigo: #111836;
+            --cyan: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.45);
+            --gold: #f59e0b;
+            --gold-soft: #fef3c7;
+            --green: #10b981;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background: #03060f;
+            color: var(--white);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+             flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* CADRE CINÉMA 16:9 PLEIN ÉCRAN */
+        #stage-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at 65% 35%, #17224d 0%, #090d20 55%, #040711 100%);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Filigrane subtil de fond (comme dans la pub SENGO) */
+        .bg-watermark {
+            position: absolute;
+            right: -5%;
+            top: -10%;
+            width: 65vw;
+            height: 120vh;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.07) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .bg-particles {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 48px 48px;
+            opacity: 0.4;
+            z-index: 1;
+            animation: driftBg 20s linear infinite;
+        }
+
+        @keyframes driftBg {
+            from { transform: translateY(0) scale(1); }
+            to { transform: translateY(-48px) scale(1.04); }
+        }
+
+        /* CONTENEUR DE SCÈNE */
+        .scene {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* =========================================================
+           SCÈNE 1 : LOGO REVEAL (00:00 - 00:03)
+           ========================================================= */
+        .s1-logo-box {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            transform: scale(0.7);
+            opacity: 0;
+            transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .scene.active .s1-logo-box {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .s1-icon {
+            width: 96px;
+            height: 96px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, #00f0ff 0%, #0284c7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 60px rgba(0, 240, 255, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+        .s1-icon::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 50%;
+            height: 200%;
+            background: rgba(255,255,255,0.5);
+            transform: rotate(30deg);
+            animation: shineSweep 2.2s infinite;
+        }
+        @keyframes shineSweep {
+            0% { left: -60%; }
+            45%, 100% { left: 140%; }
+        }
+        .s1-brand {
+            font-size: 5.5rem;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            background: linear-gradient(90deg, #ffffff 0%, #bae6fd 50%, #00f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        /* =========================================================
+           SCÈNE 2 : PHONE 3D GAUCHE + TEXTE DROITE (00:03 - 00:07)
+           ========================================================= */
+        .s2-layout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7vw;
+            width: 86vw;
+            max-width: 1320px;
+        }
+        .phone-3d-wrap {
+            perspective: 1400px;
+        }
+        .phone-frame {
+            width: 310px;
+            height: 620px;
+            background: #080d1a;
+            border-radius: 46px;
+            border: 10px solid #222c44;
+            box-shadow:
+                -25px 30px 65px rgba(0, 0, 0, 0.75),
+                0 0 0 2px rgba(0, 240, 255, 0.35),
+                0 0 50px rgba(0, 240, 255, 0.18);
+            position: relative;
+            overflow: hidden;
+            transform: rotateY(22deg) rotateX(6deg) rotateZ(-4deg) translateY(80px);
+            opacity: 0;
+            transition: all 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        .scene.active .phone-frame {
+            transform: rotateY(18deg) rotateX(4deg) rotateZ(-2deg) translateY(0);
+            opacity: 1;
+        }
+        .phone-notch {
+            width: 110px;
+            height: 24px;
+            background: #000;
+            border-radius: 99px;
+            margin: 12px auto 8px;
+            z-index: 5;
+        }
+        .phone-ui-inner {
+            flex: 1;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: linear-gradient(180deg, #0b1325 0%, #070b16 100%);
+        }
+        .p-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: #fff;
+        }
+        .p-hero-box {
+            background: rgba(0, 240, 255, 0.06);
+            border: 1px solid rgba(0, 240, 255, 0.22);
+            border-radius: 22px;
+            padding: 18px 14px;
+            text-align: center;
+        }
+        .p-radar {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            border: 2px dashed var(--cyan);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+        }
+        .p-btn-cyan {
+            background: var(--cyan);
+            color: #03111a;
+            font-weight: 800;
+            font-size: 0.88rem;
+            padding: 13px;
+            border-radius: 14px;
+            margin-top: 10px;
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.4);
+        }
+        .p-card-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 14px;
+            padding: 11px 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.78rem;
+        }
+
+        .s2-text-col {
+            max-width: 600px;
+        }
+        .kinetic-line {
+            font-size: 3.6rem;
+            font-weight: 800;
+            line-height: 1.12;
+            letter-spacing: -0.025em;
+            opacity: 0;
+            transform: translateY(35px);
+            transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .scene.active .kinetic-line.l1 { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+        .scene.active .kinetic-line.l2 { opacity: 1; transform: translateY(0); transition-delay: 0.35s; }
+        .scene.active .kinetic-line.l3 { opacity: 1; transform: translateY(0); transition-delay: 0.55s; color: var(--cyan); }
+
+        /* =========================================================
+           SCÈNE 3 : COMPTEURS 0% / 100% + BADGES PRIX (00:07 - 00:11)
+           ========================================================= */
+        .s3-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+        }
+        .s3-cards-row {
+            display: flex;
+            gap: 26px;
+        }
+        .s3-stat-card {
+            width: 340px;
+            height: 210px;
+            border-radius: 26px;
+            padding: 28px 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.45);
+            transform: scale(0.6);
+            opacity: 0;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .s3-stat-card.left {
+            background: #ffffff;
+            color: #0b132b;
+        }
+        .s3-stat-card.right {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #1e293b;
+            transition-delay: 0.2s;
+        }
+        .scene.active .s3-stat-card {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .s3-big-num {
+            font-size: 4.5rem;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.03em;
+            color: #0284c7;
+        }
+        .s3-stat-card.right .s3-big-num {
+            color: #d97706;
+        }
+        .s3-stat-label {
+            font-size: 1.55rem;
+            font-weight: 800;
+            margin-top: 8px;
+        }
+        .s3-sub-banner {
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease 0.45s;
+        }
+        .scene.active .s3-sub-banner {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .highlight-pill {
+            background: var(--cyan);
+            color: #041019;
+            padding: 2px 16px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        /* =========================================================
+           SCÈNE 4 : ROTATION 3D PHONE + POP-OUT CARDS + CURSEUR (00:11 - 00:17)
+           ========================================================= */
+        .s4-stage {
+            position: relative;
+            width: 1100px;
+            height: 640px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .s4-phone {
+            width: 310px;
+            height: 600px;
+            background: #080d1a;
+            border-radius: 44px;
+            border: 9px solid #283552;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.75), 0 0 40px rgba(0, 240, 255, 0.22);
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+            transform: translateX(-160px) rotateY(16deg) rotateX(4deg);
+        }
+        .s4-stage.flipped .s4-phone {
+            transform: translateX(180px) rotateY(-18deg) rotateX(4deg);
+        }
+        .s4-video-crop {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+        }
+        /* Pop-out UI Card (comme "Réservation / Planifier ma course" dans SENGO) */
+        .pop-card {
+            position: absolute;
+            background: #ffffff;
+            color: #0f172a;
+            border-radius: 24px;
+            padding: 24px 28px;
+            width: 370px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.55);
+            z-index: 20;
+            transition: all 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .pop-card.card-right {
+            right: 85px;
+            top: 210px;
+            transform: scale(0.7) translateX(-40px);
+            opacity: 0;
+        }
+        .scene.active .pop-card.card-right {
+            transform: scale(1) translateX(0);
+            opacity: 1;
+        }
+        .s4-stage.flipped .pop-card.card-right {
+            transform: scale(0.7) translateX(60px);
+            opacity: 0;
+        }
+        .pop-card.card-left {
+            left: 75px;
+            top: 200px;
+            transform: scale(0.7) translateX(40px);
+            opacity: 0;
+        }
+        .s4-stage.flipped .pop-card.card-left {
+            transform: scale(1) translateX(0);
+            opacity: 1;
+        }
+        .pop-card-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pop-btn-action {
+            background: linear-gradient(90deg, #0284c7, #00f0ff);
+            color: #03131d;
+            font-weight: 800;
+            font-size: 1.05rem;
+            padding: 14px 20px;
+            border-radius: 14px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .pop-btn-action.clicked {
+            transform: scale(0.93);
+            background: #10b981;
+            color: #fff;
+        }
+
+        /* =========================================================
+           SCÈNE 5 : CARTES MÉMOIRE 3D EMPILÉES (comme MAR 23 / VEN 26)
+           ========================================================= */
+        .s5-cards-3d {
+            position: relative;
+            width: 800px;
+            height: 460px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .day-card {
+            width: 350px;
+            height: 360px;
+            border-radius: 36px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(224,242,254,0.9));
+            color: #0f172a;
+            padding: 34px;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.55);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: absolute;
+        }
+        .day-card.d1 {
+            transform: translateX(-140px) rotate(-8deg) scale(0.92);
+            z-index: 2;
+        }
+        .day-card.d2 {
+            transform: translateX(130px) rotate(6deg) scale(1);
+            background: linear-gradient(145deg, #00f0ff, #0284c7);
+            color: #03111a;
+            z-index: 3;
+        }
+        .day-badge {
+            font-size: 1.2rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.75;
+        }
+        .day-num {
+            font-size: 6.2rem;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.04em;
+        }
+        .day-desc {
+            font-size: 1.25rem;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        /* =========================================================
+           SCÈNE 6 : TEXTE CINÉTIQUE PLEIN ÉCRAN AVEC ÉCHO FLOUTÉ
+           ========================================================= */
+        .s6-kinetic-box {
+            text-align: center;
+            max-width: 1050px;
+            position: relative;
+        }
+        .s6-echo-text {
+            font-size: 4.4rem;
+            font-weight: 900;
+            line-height: 1.12;
+            letter-spacing: -0.03em;
+            position: relative;
+        }
+        .s6-echo-ghost {
+            position: absolute;
+            inset: 0;
+            color: var(--cyan);
+            filter: blur(14px);
+            opacity: 0.55;
+            transform: scale(1.06) translateY(-8px);
+            pointer-events: none;
+        }
+
+        /* =========================================================
+           SCÈNE 7 : ILLUSTRATION VECTORIELLE + SCAN CHIRURGICAL SAM 2
+           (comme la scène blanche avec le personnage et la voiture dans SENGO)
+           ========================================================= */
+        .s7-illustration-stage {
+            width: 88vw;
+            max-width: 1280px;
+            height: 76vh;
+            max-height: 650px;
+            background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+            border-radius: 36px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 30px 90px rgba(0,0,0,0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f172a;
+        }
+        /* Décor urbain/atelier minimaliste en arrière-plan */
+        .s7-bg-shapes {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(90deg, rgba(59,130,246,0.08) 1px, transparent 1px),
+                linear-gradient(rgba(59,130,246,0.08) 1px, transparent 1px);
+            background-size: 45px 45px;
+        }
+        .s7-center-group {
+            position: relative;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+        .s7-giant-phone {
+            width: 260px;
+            height: 470px;
+            background: #0f172a;
+            border-radius: 36px;
+            border: 8px solid #1e293b;
+            box-shadow: 0 25px 50px rgba(15, 23, 42, 0.35);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #fff;
+            position: relative;
+        }
+        .s7-laser-beam {
+            position: absolute;
+            left: 100%;
+            top: 20%;
+            width: 340px;
+            height: 260px;
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.38), rgba(0, 240, 255, 0.02));
+            clip-path: polygon(0 30%, 100% 0, 100% 100%, 0 70%);
+            pointer-events: none;
+            animation: pulseLaser 1.6s ease-in-out infinite alternate;
+        }
+        @keyframes pulseLaser {
+            from { opacity: 0.45; }
+            to { opacity: 0.9; }
+        }
+        .s7-appliance-box {
+            width: 320px;
+            height: 320px;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(30, 58, 138, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border: 3px solid #3b82f6;
+        }
+        .s7-bbox-tag {
+            position: absolute;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            animation: popInTag 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes popInTag {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        .s7-floating-dark-card {
+            position: absolute;
+            left: 42px;
+            bottom: 34px;
+            width: 340px;
+            background: #090e1e;
+            color: #fff;
+            border-radius: 22px;
+            padding: 18px 22px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.45);
+            border: 1px solid var(--cyan);
+            z-index: 15;
+        }
+
+        /* =========================================================
+           SCÈNE 8 : CARTES EMPILÉES + JAUGE CIRCULAIRE 100% SÉCURISÉ
+           (comme 00:28 - 00:32 dans SENGO)
+           ========================================================= */
+        .s8-layout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 80px;
+            width: 88vw;
+            max-width: 1180px;
+        }
+        .s8-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            width: 440px;
+        }
+        .s8-item-card {
+            background: #ffffff;
+            color: #0f172a;
+            border-radius: 20px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+            transform: translateX(-50px);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .scene.active .s8-item-card:nth-child(1) { transform: translateX(0); opacity: 1; transition-delay: 0.1s; }
+        .scene.active .s8-item-card:nth-child(2) { transform: translateX(0); opacity: 1; transition-delay: 0.3s; }
+        .scene.active .s8-item-card:nth-child(3) { transform: translateX(0); opacity: 1; transition-delay: 0.5s; }
+        .s8-item-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: #e0f2fe;
+            color: #0284c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 800;
+        }
+
+        .s8-gauge-card {
+            width: 360px;
+            height: 390px;
+            background: linear-gradient(145deg, #fef3c7 0%, #fde68a 100%);
+            color: #0f172a;
+            border-radius: 36px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 28px 65px rgba(0,0,0,0.55);
+            position: relative;
+        }
+        .s8-ring {
+            width: 165px;
+            height: 165px;
+            border-radius: 50%;
+            border: 10px solid #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.6rem;
+            margin-bottom: 18px;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+        .s8-pct {
+            font-size: 3.8rem;
+            font-weight: 900;
+            line-height: 1;
+            color: #0f172a;
+        }
+        .s8-sec-label {
+            font-size: 1.35rem;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            color: #b45309;
+            margin-top: 6px;
+        }
+
+        /* =========================================================
+           SCÈNE 9 : PILLS RAPIDES (Rapide | Économique | RepairLens)
+           ========================================================= */
+        .s9-pills-row {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .s9-pill {
+            padding: 28px 46px;
+            border-radius: 26px;
+            font-size: 3.2rem;
+            font-weight: 900;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            transform: scale(0.5);
+            opacity: 0;
+            transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .s9-pill.p1 { background: #ffffff; color: #0f172a; }
+        .s9-pill.p2 { background: #fde68a; color: #0f172a; }
+        .s9-pill.p3 { background: linear-gradient(135deg, #00f0ff, #0284c7); color: #03111a; }
+        .s9-pill.visible {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        /* =========================================================
+           CURSEUR / POINTEUR VECTORIEL ANIMÉ (comme dans SENGO)
+           ========================================================= */
+        #motion-cursor {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            z-index: 90;
+            pointer-events: none;
+            transition: left 0.65s cubic-bezier(0.22, 1, 0.36, 1), top 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s ease;
+            left: 52%;
+            top: 110%;
+            filter: drop-shadow(0 10px 18px rgba(0,0,0,0.65));
+        }
+        #motion-cursor.clicking {
+            transform: scale(0.82);
+        }
+        .cursor-ring {
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 3px solid var(--cyan);
+            opacity: 0;
+            transform: scale(0.4);
+        }
+        #motion-cursor.clicking .cursor-ring {
+            animation: clickWave 0.55s ease-out;
+        }
+        @keyframes clickWave {
+            0% { opacity: 1; transform: scale(0.4); }
+            100% { opacity: 0; transform: scale(1.9); }
+        }
+
+        /* BARRE DE CONTRÔLE FLOTTANTE MINIMALISTE (s'efface en lecture) */
+        #floating-controls {
+            position: fixed;
+            bottom: 22px;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(8, 13, 28, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.14);
+            padding: 10px 18px;
+            border-radius: 99px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            transition: opacity 0.4s;
+        }
+        body.playing-clean #floating-controls:not(:hover) {
+            opacity: 0.15;
+        }
+        .ctrl-btn {
+            background: var(--cyan);
+            color: #03111a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ctrl-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .progress-track {
+            width: 180px;
+            height: 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--cyan);
+            transition: width 0.25s linear;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="stage-wrapper">
+        <div class="bg-watermark"></div>
+        <div class="bg-particles"></div>
+
+        <!-- =====================================================
+             SCÈNE 1 : LOGO REVEAL (comme 00:00 SENGO)
+             ===================================================== -->
+        <div class="scene active" id="scene-1">
+            <div class="s1-logo-box">
+                <div class="s1-icon">
+                    <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#03111a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </div>
+                <div class="s1-brand">REPAIRLENS</div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 2 : PHONE 3D GAUCHE + TEXTE CINÉTIQUE DROITE
+             ===================================================== -->
+        <div class="scene" id="scene-2">
+            <div class="s2-layout">
+                <div class="phone-3d-wrap">
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-ui-inner">
+                            <div class="p-header">
+                                <span>RepairLens</span>
+                                <span style="color:var(--cyan); font-size:0.75rem;">FR | EN</span>
+                            </div>
+                            <div class="p-hero-box">
+                                <div class="p-radar">•</div>
+                                <div style="font-weight:900; font-size:1.15rem; line-height:1.2;">Comprendre.<br>Diagnostiquer.<br><span style="color:var(--cyan);">Réparer.</span></div>
+                                <div class="p-btn-cyan" id="s2-btn-start">Lancer une réparation</div>
+                            </div>
+                            <div style="font-size:0.72rem; color:#94a3b8; font-weight:700; margin-top:4px;">SESSION ACTIVE • OUMY</div>
+                            <div class="p-card-item">
+                                <div>
+                                    <div style="font-weight:800;">Ventilateur Rowenta</div>
+                                    <div style="color:var(--cyan); font-size:0.7rem;">Étape 2 sur 5 • Condensateur</div>
+                                </div>
+                                <span style="background:rgba(0,240,255,0.15); color:var(--cyan); padding:4px 8px; border-radius:8px; font-weight:800;">8.5/10</span>
+                            </div>
+                            <div class="p-card-item">
+                                <div>
+                                    <div style="font-weight:800;">Machine Expresso</div>
+                                    <div style="color:#10b981; font-size:0.7rem;">Réparé • Pompe détartrée</div>
+                                </div>
+                                <span style="color:#10b981; font-weight:800;">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="s2-text-col">
+                    <div class="kinetic-line l1" id="s2-t1">L'assistant IA visuel</div>
+                    <div class="kinetic-line l2" id="s2-t2">qui redéfinit la réparation</div>
+                    <div class="kinetic-line l3" id="s2-t3">d'appareils chez vous.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 3 : COMPTEURS 0% / 100% + IMPACT (comme 00:04 SENGO)
+             ===================================================== -->
+        <div class="scene" id="scene-3">
+            <div class="s3-center">
+                <div class="s3-cards-row">
+                    <div class="s3-stat-card left">
+                        <div class="s3-big-num">0 €</div>
+                        <div class="s3-stat-label" id="s3-l1">de frais de diagnostic</div>
+                    </div>
+                    <div class="s3-stat-card right">
+                        <div class="s3-big-num" id="s3-counter">0%</div>
+                        <div class="s3-stat-label" id="s3-l2"> d'autonomie guidée</div>
+                    </div>
+                </div>
+                <div class="s3-sub-banner" id="s3-sub">
+                    Et jusqu'à <span class="highlight-pill">80% moins cher</span> que de racheter.
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 4 : ROTATION 3D DU PHONE + POP-OUT CARDS + CLIC CURSEUR
+             ===================================================== -->
+        <div class="scene" id="scene-4">
+            <div class="s4-stage" id="s4-stage-box">
+                <!-- Carte Pop-out Droite (Segmentation SAM 2) -->
+                <div class="pop-card card-right">
+                    <div class="pop-card-title">
+                        <span style="background:#e0f2fe; padding:8px; border-radius:12px;">•</span>
+                        <span id="s4-c1-title">Vision Meta SAM 2</span>
+                    </div>
+                    <p style="font-size:0.92rem; color:#475569; margin-bottom:16px; font-weight:500;" id="s4-c1-desc">
+                        Touchez n'importe quelle pièce sur l'écran ou tournez à 360° pour l'isoler.
+                    </p>
+                    <div class="pop-btn-action" id="s4-btn-pop1">Isoler la pièce en panne</div>
+                </div>
+
+                <!-- Smartphone 3D au centre qui pivote -->
+                <div class="s4-phone">
+                    <video id="s4-real-video" class="s4-video-crop" src="/static/assets/motion/capture_2.mp4" muted loop playsinline></video>
+                </div>
+
+                <!-- Carte Pop-out Gauche (Appel Vidéo IA Live) -->
+                <div class="pop-card card-left">
+                    <div class="pop-card-title">
+                        <span style="background:#dcfce7; padding:8px; border-radius:12px;">•</span>
+                        <span id="s4-c2-title">Appel Vidéo IA en Direct</span>
+                    </div>
+                    <p style="font-size:0.92rem; color:#475569; margin-bottom:16px; font-weight:500;" id="s4-c2-desc">
+                        Muse Spark distingue votre main, votre outil et vérifie la cohérence de l'appareil.
+                    </p>
+                    <div class="pop-btn-action" id="s4-btn-pop2">Activer le Co-Pilote Live</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 5 : CARTES MÉMOIRE MULTI-JOURS (comme MAR 23 / VEN 26)
+             ===================================================== -->
+        <div class="scene" id="scene-5">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:24px;">
+                <div class="s5-cards-3d">
+                    <div class="day-card d1">
+                        <div class="day-badge">MARDI • SESSION 1</div>
+                        <div class="day-num">J1</div>
+                        <div class="day-desc">Diagnostic du condensateur & commande de la pièce.</div>
+                    </div>
+                    <div class="day-card d2">
+                        <div class="day-badge">VENDREDI • REPRISE</div>
+                        <div class="day-num">J4</div>
+                        <div class="day-desc">« Bon retour Oumy ! Reprenons à l'étape 2 sur 5. »</div>
+                    </div>
+                </div>
+                <div style="font-size:2.4rem; font-weight:800;" id="s5-caption">
+                    Une mémoire PostgreSQL qui s'adapte à votre emploi du temps.
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 6 : TEXTE CINÉTIQUE AVEC ÉCHO FLOUTÉ (comme 00:15 SENGO)
+             ===================================================== -->
+        <div class="scene" id="scene-6">
+            <div class="s6-kinetic-box">
+                <div class="s6-echo-text">
+                    <div class="s6-echo-ghost" id="s6-ghost">Avec Meta SAM 2 et Muse Spark,<br>fini les pannes incompréhensibles !</div>
+                    <div id="s6-main">Avec <span style="color:var(--cyan);">Meta SAM 2</span> et <span style="color:#fde68a;">Muse Spark</span>,<br>fini les pannes incompréhensibles !</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 7 : SCÈNE ILLUSTRÉE + PRÉCISION CHIRURGICALE (comme 00:18 SENGO)
+             ===================================================== -->
+        <div class="scene" id="scene-7">
+            <div class="s7-illustration-stage">
+                <div class="s7-bg-shapes"></div>
+
+                <div class="s7-center-group">
+                    <!-- Grand Smartphone scannant l'appareil -->
+                    <div class="s7-giant-phone">
+                        <div class="s7-laser-beam"></div>
+                        <div style="font-weight:900; color:var(--cyan); font-size:0.9rem;">REPAIRLENS LIVE</div>
+                        <div style="background:#1e293b; border-radius:18px; padding:14px; text-align:center;">
+                            <div style="font-size:2.5rem;">MIC</div>
+                            <div style="font-size:0.8rem; font-weight:700; margin-top:6px; color:#38bdf8;">Spectre FFT Acoustique</div>
+                            <div style="font-size:0.72rem; color:#94a3b8; margin-top:4px;">Ronflement 50Hz détecté</div>
+                        </div>
+                        <div style="background:rgba(16,185,129,0.15); border:1px solid #10b981; color:#10b981; padding:10px; border-radius:12px; font-size:0.78rem; font-weight:800; text-align:center;">
+                            Cohérence Visuelle Validée
+                        </div>
+                    </div>
+
+                    <!-- Appareil scanné avec les 3 Bounding Boxes (Main / Outil / Appareil) -->
+                    <div class="s7-appliance-box">
+                        <div class="s7-bbox-tag" style="top:-16px; left:18px; background:#10b981;">OPÉRATEUR / MAIN (98%)</div>
+                        <div class="s7-bbox-tag" style="bottom:18px; right:-24px; background:#f59e0b; color:#000;">OUTIL : TOURNEVIS (94%)</div>
+                        <div class="s7-bbox-tag" style="top:18px; right:14px; background:#0284c7;">CONDENSATEUR 1.5µF</div>
+
+                        <svg width="150" height="150" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill="#eff6ff" stroke="#3b82f6" stroke-width="3" stroke-dasharray="6 4"/>
+                            <circle cx="50" cy="50" r="14" fill="#0284c7"/>
+                            <path d="M50 12 C62 12, 68 32, 50 38 C32 32, 38 12, 50 12" fill="#60a5fa" opacity="0.85"/>
+                            <path d="M88 50 C88 62, 68 68, 62 50 C68 32, 88 38, 88 50" fill="#60a5fa" opacity="0.85"/>
+                            <path d="M50 88 C38 88, 32 68, 50 62 C68 68, 62 88, 50 88" fill="#60a5fa" opacity="0.85"/>
+                            <path d="M12 50 C12 38, 32 32, 38 50 C32 68, 12 62, 12 50" fill="#60a5fa" opacity="0.85"/>
+                            <rect x="62" y="62" width="22" height="14" rx="4" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+                        </svg>
+                        <div style="font-weight:900; font-size:1.1rem; margin-top:12px; color:#1e293b;">Précision Chirurgicale SAM 2</div>
+                    </div>
+                </div>
+
+                <!-- Carte flottante sombre en bas à gauche (comme dans SENGO 00:22) -->
+                <div class="s7-floating-dark-card">
+                    <div style="font-size:0.75rem; color:var(--cyan); font-weight:800;">GUIDE VISUEL DÉBUTANT</div>
+                    <div style="font-size:1.05rem; font-weight:800; margin-top:4px;">Cylindre noir près de l'axe moteur</div>
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">Zoom photo SAM 2 + Photo réelle + Schéma</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 8 : CARTES EMPILÉES + JAUGE 100% SÉCURISÉ (comme 00:30 SENGO)
+             ===================================================== -->
+        <div class="scene" id="scene-8">
+            <div class="s8-layout">
+                <div class="s8-stack">
+                    <div class="s8-item-card">
+                        <div class="s8-item-icon">•</div>
+                        <div>
+                            <div style="font-weight:900; font-size:1.15rem;">Verrou de Sécurité Électrique</div>
+                            <div style="font-size:0.88rem; color:#64748b; font-weight:600;">Validation obligatoire avant démontage</div>
+                        </div>
+                    </div>
+                    <div class="s8-item-card">
+                        <div class="s8-item-icon">•</div>
+                        <div>
+                            <div style="font-weight:900; font-size:1.15rem;">Carte Mémoire des Vis</div>
+                            <div style="font-size:0.88rem; color:#64748b; font-weight:600;">Aucune vis perdue au remontage</div>
+                        </div>
+                    </div>
+                    <div class="s8-item-card">
+                        <div class="s8-item-icon">•</div>
+                        <div>
+                            <div style="font-weight:900; font-size:1.15rem;">Passeport PDF Certifié</div>
+                            <div style="font-size:0.88rem; color:#64748b; font-weight:600;">Certificat d'impact carbone & historique</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="s8-gauge-card" id="s8-gauge-target">
+                    <div class="s8-ring">•</div>
+                    <div class="s8-pct" id="s8-counter">0%</div>
+                    <div class="s8-sec-label">100% SÉCURISÉ</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             SCÈNE 9 : RAPIDE | ÉCONOMIQUE | REPAIRLENS (comme 00:35 SENGO)
+             ===================================================== -->
+        <div class="scene" id="scene-9">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:36px;">
+                <div style="font-size:2.8rem; font-weight:900;" id="s9-top-title">
+                    Vous pouvez réparer l'esprit tranquille !
+                </div>
+                <div class="s9-pills-row">
+                    <div class="s9-pill p1" id="pill-1">Rapide</div>
+                    <div class="s9-pill p2" id="pill-2">Moins cher</div>
+                    <div class="s9-pill p3" id="pill-3">RepairLens</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CURSEUR VECTORIEL ANIMÉ -->
+        <div id="motion-cursor">
+            <div class="cursor-ring"></div>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="#ffffff" stroke="#0f172a" stroke-width="1.8">
+                <path d="M4 2l16 10-7 2 4 7-3 1.5-4-7-6 5.5z"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- BARRE DE CONTRÔLE DISCRÈTE EN BAS -->
+    <div id="floating-controls">
+        <button class="ctrl-btn" id="btn-play-ad" onclick="demarrerPubMotion()">
+            ▶ Lancer le Film Publicitaire (Avec Voix & Musique)
+        </button>
+        <div class="progress-track">
+            <div class="progress-bar" id="ad-progress"></div>
+        </div>
+        <button class="ctrl-btn secondary" id="btn-voice-choice" onclick="changerVoixStudio()">
+            Voix : Féminine Studio (FR)
+        </button>
+        <a href="/static/assets/motion/RepairLens_Motion_Design_Pub_FR.mp4" download class="ctrl-btn secondary" style="text-decoration:none;">
+            Télécharger la Vidéo .MP4
+        </a>
+    </div>
+
+    <!-- PISTE AUDIO VOIX-OFF STUDIO PRÉ-GÉNÉRÉE -->
+    <audio id="studio-voice-audio" preload="auto"></audio>
+
+    <script>
+        let modeVoix = "fr_femme"; // fr_femme | fr_homme | en_femme
+        let timersPub = [];
+        let audioCtx = null;
+
+        function changerVoixStudio() {
+            const btn = document.getElementById("btn-voice-choice");
+            if (modeVoix === "fr_femme") {
+                modeVoix = "fr_homme";
+                btn.textContent = "Voix : Masculine Pub (Style SENGO)";
+            } else if (modeVoix === "fr_homme") {
+                modeVoix = "en_femme";
+                btn.textContent = "Voice : English Studio (Meta Jury)";
+            } else {
+                modeVoix = "fr_femme";
+                btn.textContent = "Voix : Féminine Studio (FR)";
+            }
+        }
+
+        // Synthétiseur d'effets sonores Motion Design (Whoosh, Pop, Accord Musical)
+        function initAudioEngine() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === "suspended") audioCtx.resume();
+        }
+
+        function jouerSonPop(freq = 520) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.6, audioCtx.currentTime + 0.09);
+            gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.11);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        }
+
+        function jouerSonWhoosh() {
+            if (!audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 0.28;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(1400, audioCtx.currentTime + 0.25);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.28);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function deplacerCurseur(xPct, yPct, cliquer = false) {
+            const cur = document.getElementById("motion-cursor");
+            cur.style.left = xPct + "%";
+            cur.style.top = yPct + "%";
+            if (cliquer) {
+                setTimeout(() => {
+                    cur.classList.add("clicking");
+                    jouerSonPop(680);
+                    setTimeout(() => cur.classList.remove("clicking"), 450);
+                }, 620);
+            }
+        }
+
+        function activerScene(num) {
+            document.querySelectorAll(".scene").forEach(s => s.classList.remove("active"));
+            const el = document.getElementById("scene-" + num);
+            if (el) el.classList.add("active");
+            jouerSonWhoosh();
+        }
+
+        function animerCompteur(id, dureeMs, suffixe = "%") {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let start = performance.now();
+            function step(now) {
+                let p = Math.min(1, (now - start) / dureeMs);
+                el.textContent = Math.round(p * 100) + suffixe;
+                if (p < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function arreterTimers() {
+            timersPub.forEach(t => clearTimeout(t));
+            timersPub = [];
+        }
+
+        function programmer(ms, fn) {
+            timersPub.push(setTimeout(fn, ms));
+        }
+
+        function demarrerPubMotion() {
+            arreterTimers();
+            initAudioEngine();
+            document.body.classList.add("playing-clean");
+
+            const audioEl = document.getElementById("studio-voice-audio");
+            audioEl.src = `/static/assets/motion/voice_${modeVoix}.mp3?t=${Date.now()}`;
+            audioEl.currentTime = 0;
+            audioEl.play().catch(e => console.warn("Audio play:", e));
+
+            const prog = document.getElementById("ad-progress");
+            const DUREE_TOTALE = 37000;
+            let t0 = performance.now();
+            function majBarre(now) {
+                let pct = Math.min(100, ((now - t0) / DUREE_TOTALE) * 100);
+                prog.style.width = pct + "%";
+                if (pct < 100 && document.body.classList.contains("playing-clean")) {
+                    requestAnimationFrame(majBarre);
+                }
+            }
+            requestAnimationFrame(majBarre);
+
+            // Reset états
+            document.getElementById("s4-stage-box").classList.remove("flipped");
+            document.getElementById("s4-btn-pop1").classList.remove("clicked");
+            document.getElementById("s4-btn-pop2").classList.remove("clicked");
+            ["pill-1", "pill-2", "pill-3"].forEach(id => document.getElementById(id).classList.remove("visible"));
+
+            // 00:00 -> Scène 1 : Logo Reveal RepairLens
+            activerScene(1);
+            deplacerCurseur(50, 110, false);
+
+            // 00:02.2 -> Scène 2 : Phone 3D à gauche + Texte cinétique à droite
+            programmer(2200, () => {
+                activerScene(2);
+                deplacerCurseur(31, 56, true);
+            });
+
+            // 00:06.8 -> Scène 3 : Cartes Compteurs 0€ / 100%
+            programmer(6800, () => {
+                activerScene(3);
+                animerCompteur("s3-counter", 1400, "%");
+                deplacerCurseur(62, 46, true);
+            });
+
+            // 00:11.2 -> Scène 4 : Phone 3D + Pop-out Card SAM 2
+            programmer(11200, () => {
+                activerScene(4);
+                const vid = document.getElementById("s4-real-video");
+                if (vid) { vid.currentTime = 0; vid.play().catch(()=>{}); }
+                deplacerCurseur(72, 55, true);
+                setTimeout(() => document.getElementById("s4-btn-pop1").classList.add("clicked"), 650);
+            });
+
+            // 00:14.2 -> Flip 3D du téléphone vers la droite + Carte Appel Vidéo Live
+            programmer(14200, () => {
+                jouerSonWhoosh();
+                document.getElementById("s4-stage-box").classList.add("flipped");
+                deplacerCurseur(26, 54, true);
+                setTimeout(() => document.getElementById("s4-btn-pop2").classList.add("clicked"), 650);
+            });
+
+            // 00:17.5 -> Scène 5 : Cartes 3D Mémoire Multi-Jours (J1 -> J4)
+            programmer(17500, () => {
+                activerScene(5);
+                deplacerCurseur(60, 48, true);
+            });
+
+            // 00:21.5 -> Scène 6 : Texte Cinétique Plein Écran avec Écho Flouté
+            programmer(21500, () => {
+                activerScene(6);
+                deplacerCurseur(50, 110, false);
+            });
+
+            // 00:25.0 -> Scène 7 : Scène Illustrée Vectorielle + Scan Chirurgical SAM 2
+            programmer(25000, () => {
+                activerScene(7);
+                deplacerCurseur(64, 48, true);
+            });
+
+            // 00:30.0 -> Scène 8 : Cartes Empilées + Jauge 100% Sécurisé
+            programmer(30000, () => {
+                activerScene(8);
+                animerCompteur("s8-counter", 1500, "%");
+                deplacerCurseur(68, 52, true);
+            });
+
+            // 00:34.0 -> Scène 9 : Finale Rythmée (Rapide | Moins cher | RepairLens)
+            programmer(34000, () => {
+                activerScene(9);
+                setTimeout(() => { document.getElementById("pill-1").classList.add("visible"); jouerSonPop(440); }, 250);
+                setTimeout(() => { document.getElementById("pill-2").classList.add("visible"); jouerSonPop(550); }, 850);
+                setTimeout(() => { document.getElementById("pill-3").classList.add("visible"); jouerSonPop(660); }, 1450);
+            });
+
+            programmer(37500, () => {
+                document.body.classList.remove("playing-clean");
+            });
+        }
+    </script>
+</body>
+</html>

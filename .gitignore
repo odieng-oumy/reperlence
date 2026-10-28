@@ -227,4 +227,7 @@ models/*.pth
 # Documents d'étude personnels
 *.docx
 frontend/assets/motion/*.mp4
+frontend/assets/motion/*.mp3
+frontend/assets/motion/*.wav
+frontend/assets/motion/*.ogg
 frontend/assets/motion/*.ogg
