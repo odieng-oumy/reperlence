@@ -230,4 +230,12 @@ frontend/assets/motion/*.mp4
 frontend/assets/motion/*.mp3
 frontend/assets/motion/*.wav
 frontend/assets/motion/*.ogg
-frontend/assets/motion/*.ogg
+
+# Screenshots temporaires
+Capture d'*.png
+
+# Dossier demo video HyperFrames (artifacts lourds)
+repairlens-demo/
+
+# Claude Code
+.claude/
