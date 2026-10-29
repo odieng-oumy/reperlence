@@ -189,31 +189,38 @@ def _sam_masks_to_regions(masks: list, img_h: int, img_w: int, scale_x: float, s
     return regions
 
 
-async def _identifier_regions_muse(image_b64: str, type_appareil: str, regions: list) -> list:
+async def _identifier_regions_muse(image_b64: str, type_appareil: str, regions: list, langue: str = "fr") -> list:
     regions_desc = "\n".join([
         f"Region {r['index']}: center=({r['cx_pct']:.0f}%, {r['cy_pct']:.0f}%), "
         f"size=({r['w_pct']:.0f}% x {r['h_pct']:.0f}%)"
         for r in regions
     ])
 
+    is_en = (langue == "en")
+    lang_instruction = "Respond entirely in English." if is_en else "Reponds entierement en francais."
+    nom_example = "Component name" if is_en else "Nom du composant"
+    desc_example = "Simple 1-sentence explanation" if is_en else "Explication simple en 1 phrase"
+
     prompt = f"""You are an elite hardware repair engineer with extreme pedagogical clarity.
 Examine this photo of a device ({type_appareil}).
+Inspect each visible zone: look for cracks, dents, burns, discoloration, bent parts, or missing screws. If a zone looks intact, say so clearly — do not invent defects.
 
 SAM 2 (Segment Anything Model) detected {len(regions)} distinct regions:
 {regions_desc}
 
-For each region, identify the hardware component and explain its role in simple words.
+For each region, identify the hardware component, its current condition (damaged or intact), and explain its role in simple words.
 When naming a technical part, immediately explain it simply (e.g. "the capacitor (small black cylinder near the motor)").
 Do NOT invent part numbers or references you cannot see.
+{lang_instruction}
 
 Respond ONLY in valid JSON:
 {{
   "composants": [
     {{
       "region": 1,
-      "nom": "Component name",
+      "nom": "{nom_example}",
       "etat": "suspect_ia",
-      "description": "Simple 1-sentence explanation"
+      "description": "{desc_example}"
     }}
   ]
 }}"""
@@ -336,7 +343,7 @@ Respond ONLY in valid JSON:
 # Fonctions publiques — Segmentation avec SAM 2
 # ===============================================================
 
-async def segmenter_image(image_base64: str, type_appareil: str = "appareil") -> dict:
+async def segmenter_image(image_base64: str, type_appareil: str = "appareil", langue: str = "fr") -> dict:
     b64_propre = _nettoyer_b64(image_base64)
     if not b64_propre:
         return {"composants": [], "mode": "sam2"}
@@ -355,7 +362,7 @@ async def segmenter_image(image_base64: str, type_appareil: str = "appareil") ->
             return {"composants": [], "mode": "sam2"}
 
         if _is_api_configured():
-            composants = await _identifier_regions_muse(b64_propre, type_appareil, regions)
+            composants = await _identifier_regions_muse(b64_propre, type_appareil, regions, langue=langue)
         else:
             raise RuntimeError("Meta AI API key not configured. Set META_API_KEY in .env")
 
@@ -365,22 +372,29 @@ async def segmenter_image(image_base64: str, type_appareil: str = "appareil") ->
     if not _is_api_configured():
         raise RuntimeError("Meta AI API key not configured. Set META_API_KEY in .env")
 
+    is_en = (langue == "en")
+    lang_instr = "Respond entirely in English." if is_en else "Reponds entierement en francais."
+    nom_ex = "Precise part name" if is_en else "Nom precis de la piece"
+    desc_ex = "Clear simple explanation of this part's role" if is_en else "Explication simple et claire du role de cette piece"
+
     prompt = f"""Examine this image of a device ({type_appareil}).
 Identify 3 precise technical components visible or likely present that are useful for repair diagnosis.
+For each component, note its real condition: if damaged (cracks, dents, burns, discoloration, bent parts), describe the defect. If the component looks intact, state "intact" — do not invent defects.
 For each component, estimate its position as percentage coordinates on the image (pos_x between 15 and 85, pos_y between 15 and 85).
+{lang_instr}
 
 Respond ONLY with a valid JSON object:
 {{
   "composants": [
     {{
-      "nom": "Precise part name",
+      "nom": "{nom_ex}",
       "pos_x": 45.0,
       "pos_y": 50.0,
       "largeur": 28.0,
       "hauteur": 28.0,
       "confiance": 0.95,
       "etat": "suspect_ia",
-      "description": "Clear simple explanation of this part's role"
+      "description": "{desc_ex}"
     }}
   ]
 }}"""
@@ -398,7 +412,7 @@ Respond ONLY with a valid JSON object:
     return {"composants": [], "mode": "muse_spark"}
 
 
-async def segmenter_point_precis(image_base64: str, point_x: float, point_y: float, type_appareil: str = "appareil") -> dict:
+async def segmenter_point_precis(image_base64: str, point_x: float, point_y: float, type_appareil: str = "appareil", langue: str = "fr") -> dict:
     b64_propre = _nettoyer_b64(image_base64)
 
     if _is_sam2_available() and b64_propre:
@@ -433,10 +447,15 @@ async def segmenter_point_precis(image_base64: str, point_x: float, point_y: flo
             h_pct = round(((by2 - by1) / h) * 100, 1)
 
             if _is_api_configured():
+                is_en = (langue == "en")
+                lang_instr = "Respond in English." if is_en else "Reponds en francais."
+                nom_ex = "Part name" if is_en else "Nom de la piece"
+                desc_ex = "Simple 1-sentence explanation" if is_en else "Explication simple en 1 phrase"
                 id_prompt = f"""The user tapped a point on their {type_appareil}. SAM 2 isolated a component at ({cx_pct:.0f}%, {cy_pct:.0f}%) covering ({w_pct:.0f}% x {h_pct:.0f}%) of the image.
-Identify this part and explain its role simply.
+Identify this part, check if it looks damaged, and explain its role simply.
+{lang_instr}
 Respond ONLY in valid JSON:
-{{"nom": "Part name", "description": "Simple 1-sentence explanation", "etat": "suspect_ia"}}"""
+{{"nom": "{nom_ex}", "description": "{desc_ex}", "etat": "suspect_ia"}}"""
                 try:
                     raw = await _call_vision(id_prompt, b64_propre, max_tokens=1000)
                     parsed = _extraire_json(raw)
@@ -465,12 +484,18 @@ Respond ONLY in valid JSON:
     if not _is_api_configured():
         raise RuntimeError("Meta AI API key not configured. Set META_API_KEY in .env")
 
+    is_en_fb = (langue == "en")
+    lang_fb = "Respond in English." if is_en_fb else "Reponds en francais."
+    nom_fb = "Part name" if is_en_fb else "Nom de la piece"
+    desc_fb = "Simple 1-sentence explanation" if is_en_fb else "Explication simple en 1 phrase"
+
     prompt = f"""The user tapped the point ({int(point_x)}%, {int(point_y)}%) on a photo of their device ({type_appareil}).
 Identify the part at that location and explain its role simply.
+{lang_fb}
 Respond ONLY in valid JSON:
 {{
-  "nom": "Part name",
-  "description": "Simple 1-sentence explanation",
+  "nom": "{nom_fb}",
+  "description": "{desc_fb}",
   "confiance": 0.96
 }}"""
     try:
@@ -483,18 +508,20 @@ Respond ONLY in valid JSON:
                 "largeur": 28.0, "hauteur": 28.0,
                 "confiance": float(parsed.get("confiance", 0.96)),
                 "etat": "suspect_ia",
-                "description": parsed.get("description", "Component at this location.")
+                "description": parsed.get("description", "")
             }
     except Exception as e:
         print(f"[POINT SEG] {e}")
 
+    fallback_nom = f"Composant a ({int(point_x)}%, {int(point_y)}%)" if not is_en_fb else f"Component at ({int(point_x)}%, {int(point_y)}%)"
+    fallback_desc = f"Composant non identifie a cette position sur votre {type_appareil}." if not is_en_fb else f"Could not identify the component at this position on your {type_appareil}."
     return {
-        "nom": f"Component at ({int(point_x)}%, {int(point_y)}%)",
+        "nom": fallback_nom,
         "pos_x": point_x, "pos_y": point_y,
         "largeur": 28.0, "hauteur": 28.0,
         "confiance": 0.5,
         "etat": "inconnu",
-        "description": f"Could not identify the component at this position on your {type_appareil}."
+        "description": fallback_desc
     }
 
 
@@ -587,6 +614,10 @@ async def analyser_vue(
         existing_str = "\n".join([f"- {d.get('vue','')}: {d.get('nom_court','')}" for d in defauts_existants])
         existing_str = f"\nDefects ALREADY found (do NOT repeat these):\n{existing_str}\n"
 
+    ex_nom = "Ecran fissure" if not is_en else "Cracked screen"
+    ex_desc = "Fissure visible sur l'ecran" if not is_en else "Visible crack across the display"
+    ex_comp = "Ecran" if not is_en else "Screen"
+
     prompt = f"""{lang_instr}
 You are an expert device repair technician examining a {type_appareil}.
 Current view: {angle_label}.
@@ -599,9 +630,9 @@ Respond ONLY in valid JSON:
 {{
   "defauts": [
     {{
-      "nom_court": "Cracked screen",
-      "description": "Visible crack across the display",
-      "composant": "Screen"
+      "nom_court": "{ex_nom}",
+      "description": "{ex_desc}",
+      "composant": "{ex_comp}"
     }}
   ]
 }}"""

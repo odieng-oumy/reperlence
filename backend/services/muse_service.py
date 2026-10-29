@@ -87,7 +87,7 @@ async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -
             },
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"].get("content", "")
+        return resp.json()["choices"][0]["message"].get("content") or ""
 
 
 async def _call_llm_vision(prompt: str, image_base64: str, max_tokens: int = 4000) -> str:
@@ -111,7 +111,7 @@ async def _call_llm_vision(prompt: str, image_base64: str, max_tokens: int = 400
             },
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"].get("content", "")
+        return resp.json()["choices"][0]["message"].get("content") or ""
 
 
 def chercher_photo_reelle_internet(terme_recherche: str, svg_type: str) -> str:
@@ -226,7 +226,7 @@ async def evaluer_besoin_infos(type_appareil: str, probleme: str, composants: li
     liste_comp = "\n".join([f"- {c['nom']} (state: {c['etat']})" for c in composants])
     lang_instruction = "Respond entirely in English." if langue == "en" else "Reponds entierement en francais."
 
-    prompt = f"""You are an elite hardware repair engineer with extreme pedagogical clarity. When you name a technical component, immediately explain it in simple words. Only cite specific part numbers or references if you have confirmed them — if unsure, describe the component by its appearance and function instead. {lang_instruction}
+    prompt = f"""You are an elite hardware repair engineer. Only cite specific part numbers if you have confirmed them — if unsure, describe the component by its appearance and function instead. {lang_instruction}
 
 Device: {type_appareil}
 Reported problem: {probleme}
@@ -235,7 +235,13 @@ Visually detected components:
 
 Before diagnosing, evaluate if the problem description is too vague (< 4 words without detail).
 If yes, ask 2-3 short precise questions ("besoin_infos": true).
-If no, give the full diagnosis directly with repairability metrics and 5-7 clear steps ("besoin_infos": false).
+If no, give the full diagnosis directly with repairability metrics and 5-8 repair steps ("besoin_infos": false).
+
+Each repair step MUST be 10 WORDS MAXIMUM. Strict format: "Part name: verb + 2-3 words".
+NEVER combine two actions. NEVER add parenthetical explanations inside a step.
+Only append "[SAFETY: 3 words max]" / "[SECURITE: 3 mots max]" when there is real danger.
+Good: "Vitre avant : retirer avec ventouse" | "Battery connector: unclip gently"
+Bad: "Vitre avant : retirer la vitre cassée avec la ventouse en tirant doucement vers le haut" (TOO LONG)
 
 Do NOT use any emojis. Respond ONLY in valid JSON:
 {{
@@ -251,7 +257,7 @@ Do NOT use any emojis. Respond ONLY in valid JSON:
     "economie_realisee": "~$185",
     "dechet_evite": "14 kg e-waste"
   }},
-  "etapes": ["Step 1: ...", "Step 2: ..."]
+  "etapes": ["Part name: short action", "Part name: short action [SAFETY: risk]"]
 }}"""
 
     try:
@@ -286,7 +292,14 @@ Detected components: {liste_comp}
 Additional info from the user:
 {reponses_fmt}
 
-Generate a precise component-level diagnosis, repairability metrics, and 5-7 repair steps.
+Generate a precise component-level diagnosis, repairability metrics, and 5-8 repair steps.
+
+Each repair step MUST be 10 WORDS MAXIMUM. Strict format: "Part name: verb + 2-3 words".
+NEVER combine two actions. NEVER add parenthetical explanations inside a step.
+Only append "[SAFETY: 3 words max]" / "[SECURITE: 3 mots max]" when there is real danger.
+Good: "Vitre avant : retirer avec ventouse" | "Battery connector: unclip gently"
+Bad: "Vitre avant : retirer la vitre cassée avec la ventouse en tirant doucement vers le haut" (TOO LONG)
+
 Do NOT use any emojis. Respond ONLY in valid JSON:
 {{
   "diagnostic": "...",
@@ -299,7 +312,7 @@ Do NOT use any emojis. Respond ONLY in valid JSON:
     "economie_realisee": "~$185",
     "dechet_evite": "14 kg e-waste"
   }},
-  "etapes": ["Step 1...", "..."]
+  "etapes": ["Part name: short action", "Part name: short action [SAFETY: risk]"]
 }}"""
 
     try:
@@ -320,7 +333,7 @@ async def generer_diagnostic(type_appareil: str, probleme: str, composants: list
         raise RuntimeError("Meta AI API key not configured. Set META_API_KEY in .env")
 
     liste_comp = "\n".join([f"- {c['nom']} (state: {c['etat']}, position: {c['position']})" for c in composants])
-    prompt = f"""You are an elite hardware repair engineer with extreme pedagogical clarity. Give exact component names and explain them simply.
+    prompt = f"""You are an elite hardware repair engineer. Give exact component names.
 
 Device: {type_appareil}
 Reported problem: {probleme}
@@ -330,12 +343,18 @@ Components detected by AI vision:
 
 Generate:
 1. A clear diagnosis of the probable problem (2-3 sentences)
-2. A list of precise ordered repair steps (5-8 steps)
+2. A list of 5-8 precise ordered repair steps
+
+Each repair step MUST be 10 WORDS MAXIMUM. Strict format: "Part name: verb + 2-3 words".
+NEVER combine two actions. NEVER add parenthetical explanations inside a step.
+Only append "[SAFETY: 3 words max]" when there is real danger.
+Good: "Front glass: pry off with suction cup" | "Battery connector: unclip gently"
+Bad: "Front glass: carefully pry off the broken glass using a suction cup while holding the frame" (TOO LONG)
 
 Respond in JSON format:
 {{
   "diagnostic": "...",
-  "etapes": ["Step 1: ...", "Step 2: ...", ...]
+  "etapes": ["Part name: short action", "Part name: short action [SAFETY: risk]"]
 }}"""
 
     try:
@@ -401,10 +420,10 @@ Respond ONLY in valid JSON:
     for m in (historique_messages or [])[-8:]:
         auteur = m.get("auteur", "")
         texte = m.get("texte", "")
-        if "Technicien" in auteur or "User" in auteur:
-            messages.append({"role": "user", "content": texte})
-        else:
+        if "Assistant" in auteur or "Muse" in auteur or "RepairLens" in auteur:
             messages.append({"role": "assistant", "content": texte})
+        else:
+            messages.append({"role": "user", "content": texte})
     messages.append({"role": "user", "content": message_technicien})
 
     try:
@@ -435,6 +454,38 @@ Respond ONLY in valid JSON:
         return out
     except Exception as e:
         print(f"[LLM] Conversation error: {e}")
+        raise
+
+
+async def decomposer_etape(instruction: str, type_appareil: str, langue: str = "fr") -> dict:
+    if not _is_api_configured():
+        raise RuntimeError("Meta AI API key not configured")
+
+    is_fr = langue != "en"
+    lang_instr = "Reponds en francais." if is_fr else "Respond in English."
+
+    prompt = f"""{lang_instr}
+Break this single repair step into 3 to 5 very simple micro-actions.
+Each micro-action = one hand movement, one tool, one gesture. Use everyday words, zero jargon.
+Number each line. No introductions, no conclusions.
+
+Device: {type_appareil}
+Step to break down: "{instruction}"
+"""
+
+    try:
+        lang_sys = "Reponds uniquement en francais." if is_fr else "Respond only in English."
+        messages = [
+            {"role": "system", "content": f"You are an elite hardware repair engineer with extreme pedagogical clarity. You specialize in making complex repair instructions accessible to beginners. {lang_sys}"},
+            {"role": "user", "content": prompt}
+        ]
+        raw = await _call_llm(messages, max_tokens=600)
+        if not raw:
+            raise ValueError("Empty LLM response")
+        clean = re.sub(r"```(?:json)?|```", "", raw).strip()
+        return {"micro_actions": clean}
+    except Exception as e:
+        print(f"[LLM] Micro-actions error: {e}")
         raise
 
 
