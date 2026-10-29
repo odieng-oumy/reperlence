@@ -48,7 +48,6 @@ function mettreAJourProgressBar(ecranActif) {
 
     const ordre = [
         'screen-new-inspection',
-        'screen-ai-vision',
         'screen-ai-diagnosis',
         'screen-guided-inspection'
     ];
@@ -135,7 +134,7 @@ function dicterChamp(inputId, btnId, actionAuto = false) {
             input.value = input.value ? `${input.value} ${transcript}` : transcript;
         }
         if (actionAuto) {
-            if (inputId === 'input-ask-vision') poserQuestionVision();
+            if (inputId === 'input-probleme') envoyerMessageLiveChat();
             else if (inputId === 'input-diag-chat') envoyerMessageChatIA('input-diag-chat', 'diag-chat-messages');
             else if (inputId === 'input-guided-chat') envoyerMessageChatIA('input-guided-chat', 'guided-chat-messages');
         }
@@ -485,7 +484,9 @@ async function envoyerMessageLiveChat() {
                 langue: getLangue()
             })
         });
+        if (!res.ok) throw new Error(`Server ${res.status}`);
         const data = await res.json();
+        if (!data || !data.reponse_ia) throw new Error('Empty AI response');
         const waitEl = document.getElementById('live-chat-ai-waiting');
         if (waitEl) waitEl.remove();
 
@@ -501,8 +502,8 @@ async function envoyerMessageLiveChat() {
         const texteReponse = (data && data.reponse_ia)
             ? data.reponse_ia
             : (isFr
-                ? `Bien reçu ${prenom} ! L'appareil est donc sous tension. Peux-tu me préciser si le moteur fait un bruit de bourdonnement ou si les pales tournent à la main ?`
-                : `Got it ${prenom}! The device powers on. Does the motor hum or can you spin the blades freely by hand?`);
+                ? `Bien reçu ${prenom} ! Peux-tu me donner plus de détails sur le problème que tu rencontres avec ton ${appareilActuel || 'appareil'} ?`
+                : `Got it ${prenom}! Can you give me more details about the issue you're experiencing with your ${appareilActuel || 'device'}?`);
 
         historiqueMessages.push({ auteur: prenom, texte: msg });
         historiqueMessages.push({ auteur: 'Assistant RepairLens', texte: texteReponse });
@@ -530,14 +531,13 @@ async function envoyerMessageLiveChat() {
             etapesActuelles.push(...data.nouvelles_etapes);
         }
     } catch (err) {
-        console.warn('Erreur chat live:', err);
+        console.error('Erreur chat live:', err);
         const waitEl = document.getElementById('live-chat-ai-waiting');
         if (waitEl) waitEl.remove();
         const fallbackTexte = isFr
-            ? `Bien reçu ${prenom} ! Dès que tu le souhaites, clique sur "Voir les étapes de réparation" ci-dessous pour démarrer le guidage.`
-            : `Got it ${prenom}! Whenever you are ready, click "Start repair steps" below to proceed.`;
+            ? `Hmm, j'ai eu un petit souci de connexion${prenom ? ' ' + prenom : ''}. Peux-tu reformuler ta question ? Je suis prêt à t'aider avec ton ${appareilActuel || 'appareil'}.`
+            : `I had a brief connection issue${prenom ? ' ' + prenom : ''}. Could you rephrase your question? I'm ready to help with your ${appareilActuel || 'device'}.`;
         ajouterMessageChatGPT('live-chat-thread', 'Assistant RepairLens', fallbackTexte, 'ai');
-        parlerIA(fallbackTexte);
     }
 }
 
@@ -804,16 +804,12 @@ async function detecterAppareilAutomatiqueIA(b64, options = {}) {
 
     const quickZone = document.getElementById('live-chat-quick-replies');
     if (quickZone) {
+        const repsNeutres = isFr
+            ? [`Il ne s'allume plus`, `Il fait un bruit anormal`, `Je vois un dégât visible`]
+            : [`It won't turn on`, `It makes an unusual noise`, `I see visible damage`];
         quickZone.style.display = 'flex';
-        const repsFallback = estVideo
-            ? (isFr
-                ? ["Le moteur vibre mais ne tourne pas", "Bruit anormal ou frottement", "Un voyant clignote en erreur"]
-                : ["Motor vibrates but does not spin", "Abnormal noise or friction", "Error LED is blinking"])
-            : (isFr
-                ? ["L'écran est fissuré ou noir", "L'appareil ne s'allume plus", "Il s'allume mais fonctionne mal"]
-                : ["Screen is cracked or black", "Device does not turn on", "Powers on but malfunctions"]);
-        quickZone.innerHTML = repsFallback.map(rep => {
-            const safeRep = rep.replace(/'/g, "\'").replace(/"/g, '&quot;');
+        quickZone.innerHTML = repsNeutres.map(rep => {
+            const safeRep = rep.replace(/'/g, "\\'").replace(/"/g, '&quot;');
             return `<button type="button" class="chat-quick-pill" onclick="choisirReponseRapide('${safeRep}')">${rep}</button>`;
         }).join('');
     }
@@ -873,6 +869,7 @@ document.getElementById('input-fichier').addEventListener('change', function(e) 
                 document.getElementById('input-probleme').value = '';
                 promesseAutoId = detecterAppareilAutomatiqueIA(imageBase64, { estEnrichissement: false, typeMedia: 'photo' });
             }
+            lancerAnalyseImmediatement();
         };
         img.src = imageDataUrl;
     };
@@ -928,6 +925,7 @@ document.getElementById('input-video').addEventListener('change', async function
             document.getElementById('input-probleme').value = '';
             promesseAutoId = detecterAppareilAutomatiqueIA(frameB64, { estEnrichissement: false, typeMedia: 'video' });
         }
+        lancerAnalyseImmediatement();
     }
 });
 
@@ -997,6 +995,7 @@ function capturerFrameCamera() {
     preview.src = imageDataUrl;
     document.getElementById('zone-photo-preview').style.display = 'block';
     promesseAutoId = detecterAppareilAutomatiqueIA(imageBase64);
+    lancerAnalyseImmediatement();
 }
 
 // Créer une miniature légère en Base64 pour sauvegarder dans PostgreSQL
@@ -1038,34 +1037,73 @@ function devinerAppareilDepuisTexte(texte) {
 }
 
 // =============================================================
-// LANCER L'ANALYSE SAM 2 -> PASSER À L'ÉCRAN 2 (SI PHOTO/VIDÉO) OU ÉCRAN 3 (SI TEXTE SEUL)
+// ANALYSE IMMÉDIATE : Détourage + Vision dès l'import (pas d'attente)
+// =============================================================
+async function lancerAnalyseImmediatement() {
+    if (!imageBase64) return;
+
+    const setupPlaceholder = document.getElementById('setup-placeholder');
+    const setupPanel = document.getElementById('setup-panel');
+    const zonePhoto = document.getElementById('zone-photo-preview');
+    const zoneVideo = document.getElementById('zone-video-preview');
+    const zoneVision = document.getElementById('zone-vision-inline');
+
+    if (setupPlaceholder) setupPlaceholder.style.display = 'none';
+    if (setupPanel) setupPanel.style.display = 'block';
+    if (zonePhoto) zonePhoto.style.display = 'none';
+    if (zoneVideo) zoneVideo.style.display = 'none';
+    if (zoneVision) zoneVision.style.display = 'block';
+
+    const imgEl = document.getElementById('vision-main-image');
+    const vidEl = document.getElementById('vision-main-video');
+    const maskCanvas = document.getElementById('vision-mask-canvas');
+
+    if (estModeVideo && videoObjectUrl) {
+        if (imgEl) imgEl.style.display = 'none';
+        if (maskCanvas) maskCanvas.style.display = 'none';
+        if (vidEl) { vidEl.style.display = 'block'; vidEl.src = videoObjectUrl; vidEl.play().catch(() => {}); }
+    } else {
+        if (vidEl) vidEl.style.display = 'none';
+        if (imgEl) { imgEl.style.display = 'block'; imgEl.src = imageDataUrl; }
+    }
+
+    defautsParVue = [];
+    mettreAJourListeDefauts();
+
+    const scannerOverlay = document.getElementById('ai-live-scanner');
+    if (scannerOverlay) scannerOverlay.classList.add('scanning');
+
+    lancerDetourage(imageBase64);
+
+    await promesseAutoId;
+    lancerAnalyseComplete();
+}
+
+// =============================================================
+// LANCER L'ANALYSE SAM 2 (segmentation + scan 360°)
 // =============================================================
 async function lancerAnalyseComplete() {
-    const btn = document.getElementById('btn-lancer-analyse');
-    const txt = document.getElementById('texte-btn-lancer');
-    btn.disabled = true;
-    txt.textContent = getLangue() === 'fr' ? 'Analyse en cours...' : 'Analyzing device...';
+    const isFr = getLangue() === 'fr';
 
-    let champAppareil = document.getElementById('input-appareil').value.trim();
-    let champProbleme = document.getElementById('input-probleme').value.trim();
+    let champAppareil = (document.getElementById('input-appareil') || {}).value || '';
+    champAppareil = champAppareil.trim();
+    let champProbleme = (document.getElementById('input-probleme') || {}).value || '';
+    champProbleme = champProbleme.trim();
     const aMediaVisuel = Boolean(imageBase64) || (estModeVideo && videoFramesBase64.length > 0);
 
-    // Si l'utilisateur a mis une photo/vidéo sans taper le nom de l'appareil, l'IA le détecte toute seule !
     if (!champAppareil && imageBase64) {
         if (promesseAutoId) {
             await promesseAutoId;
         } else {
             await detecterAppareilAutomatiqueIA(imageBase64);
         }
-        champAppareil = document.getElementById('input-appareil').value.trim();
-        champProbleme = document.getElementById('input-probleme').value.trim();
+        champAppareil = (document.getElementById('input-appareil') || {}).value || '';
+        champAppareil = champAppareil.trim();
+        champProbleme = (document.getElementById('input-probleme') || {}).value || '';
+        champProbleme = champProbleme.trim();
     }
 
     if (!aMediaVisuel && !champProbleme && !champAppareil) {
-        btn.disabled = false;
-        txt.textContent = t('btn_launch_ai');
-        afficherToast(getLangue() === 'fr' ? "Importez une photo ou décrivez la panne." : "Please upload a photo or describe the issue.", '');
-        document.getElementById('input-probleme').focus();
         return;
     }
 
@@ -1125,7 +1163,8 @@ async function lancerAnalyseComplete() {
                 body: JSON.stringify({
                     session_id: sessionId,
                     image_base64: imageBase64,
-                    type_appareil: appareilActuel
+                    type_appareil: appareilActuel,
+                    langue: getLangue()
                 })
             });
             const dataSeg = await resSeg.json();
@@ -1133,12 +1172,15 @@ async function lancerAnalyseComplete() {
         }
         composantSelectionne = 0;
 
-        afficherEcranVisionSAM();
+        const zoneVision = document.getElementById('zone-vision-inline');
+        if (zoneVision && zoneVision.style.display === 'block') {
+            mettreAJourFicheComposant(composantSelectionne);
+            lancerInspectionRotativeIA();
+        } else {
+            afficherEcranVisionSAM();
+        }
     } catch (err) {
-        alert('Error: ' + err.message);
-    } finally {
-        btn.disabled = false;
-        txt.textContent = t('btn_launch_ai');
+        console.error('Analyse error:', err);
     }
 }
 
@@ -1146,9 +1188,19 @@ async function lancerAnalyseComplete() {
 // ÉCRAN 2 : AI VISION ACTIVE (SAM 2 + ROTATION & SCAN DES 4 COINS)
 // =============================================================
 function afficherEcranVisionSAM() {
-    afficherEcran('screen-ai-vision');
     defautsParVue = [];
     mettreAJourListeDefauts();
+
+    const setupPlaceholder = document.getElementById('setup-placeholder');
+    const setupPanel = document.getElementById('setup-panel');
+    const zonePhoto = document.getElementById('zone-photo-preview');
+    const zoneVideo = document.getElementById('zone-video-preview');
+    const zoneVision = document.getElementById('zone-vision-inline');
+    if (setupPlaceholder) setupPlaceholder.style.display = 'none';
+    if (setupPanel) setupPanel.style.display = 'block';
+    if (zonePhoto) zonePhoto.style.display = 'none';
+    if (zoneVideo) zoneVideo.style.display = 'none';
+    if (zoneVision) zoneVision.style.display = 'block';
 
     const imgEl = document.getElementById('vision-main-image');
     const vidEl = document.getElementById('vision-main-video');
@@ -1477,7 +1529,8 @@ async function segmenterPointSurImage(event) {
                 image_base64: imageBase64 || 'simulation',
                 point_x: xPct,
                 point_y: yPct,
-                type_appareil: appareilActuel
+                type_appareil: appareilActuel,
+                langue: getLangue()
             })
         });
         const data = await res.json();
@@ -1691,20 +1744,19 @@ async function afficherGuideVisuelEtape() {
 }
 
 async function poserQuestionVision() {
-    const input = document.getElementById('input-ask-vision');
+    const input = document.getElementById('input-probleme');
+    if (!input) return;
     const q = input.value.trim();
     if (!q) return;
     input.value = '';
 
-    const chatZone = document.getElementById('vision-chat-messages');
+    const chatContainerId = 'live-chat-thread';
     const isFr = getLangue() === 'fr';
     const prenomActuel = localStorage.getItem('rl_user_name') || (isFr ? 'Vous' : 'You');
 
-    if (chatZone) {
-        ajouterMessageChatGPT('vision-chat-messages', prenomActuel, q, 'user');
-        const waitRow = ajouterMessageChatGPT('vision-chat-messages', 'Assistant RepairLens', isFr ? 'Réflexion en cours...' : 'Thinking...', 'ai');
-        if (waitRow) waitRow.id = 'vision-chat-wait';
-    }
+    ajouterMessageChatGPT(chatContainerId, prenomActuel, q, 'user');
+    const waitRow = ajouterMessageChatGPT(chatContainerId, 'Assistant RepairLens', isFr ? 'Réflexion en cours...' : 'Thinking...', 'ai');
+    if (waitRow) waitRow.id = 'vision-chat-wait';
 
     try {
         const res = await fetch('/api/diagnostic/continuer', {
@@ -1743,9 +1795,7 @@ async function poserQuestionVision() {
         historiqueMessages.push({ auteur: prenomActuel, texte: q });
         historiqueMessages.push({ auteur: 'Assistant RepairLens', texte: data.reponse_ia });
 
-        if (chatZone) {
-            ajouterMessageChatGPT('vision-chat-messages', 'Assistant RepairLens', data.reponse_ia, 'ai', '', Boolean(data && data.proposer_appel_video));
-        }
+        ajouterMessageChatGPT(chatContainerId, 'Assistant RepairLens', data.reponse_ia, 'ai', '', Boolean(data && data.proposer_appel_video));
         parlerIA(data.reponse_ia);
     } catch (err) {
         const waitEl = document.getElementById('vision-chat-wait');
@@ -1945,11 +1995,13 @@ function afficherEtapeGuidee(idx) {
         return `<div class="step-dot-circle ${classe}" onclick="afficherEtapeGuidee(${i})">${i + 1}</div>${ligne}`;
     }).join('');
 
-    // 2. Titre et instruction de l'étape
+    // 2. Titre et instruction de l'étape (avec badge sécurité si [SECURITE:])
     document.getElementById('guided-step-counter').textContent = `${t('step_of')} ${indexEtapeActive + 1} ${t('of_word')} ${total}`;
-    const textePropre = (etape.instruction || '').replace(/^(Etape|Étape|Step)\s*\d+\s*:\s*/i, '');
-    document.getElementById('guided-step-title').textContent = textePropre;
-    if (typeof mettreAJourFlecheGesteAR === 'function') mettreAJourFlecheGesteAR(textePropre);
+    const texteRaw = (etape.instruction || '').replace(/^(Etape|Étape|Step)\s*\d+\s*:\s*/i, '');
+    const { instruction: textePropre, badge: safetyBadge } = formaterInstructionEtape(texteRaw);
+    const titreEl = document.getElementById('guided-step-title');
+    titreEl.innerHTML = textePropre + (safetyBadge ? '<br>' + safetyBadge : '');
+    if (typeof mettreAJourFlecheGesteAR === 'function') mettreAJourFlecheGesteAR(texteRaw);
     document.getElementById('guided-step-desc').textContent =
         getLangue() === 'fr'
             ? "Suivez attentivement cette vérification et cochez les tâches ci-dessous une fois effectuées."
@@ -1959,10 +2011,11 @@ function afficherEtapeGuidee(idx) {
     const checklistZone = document.getElementById('guided-checklist-items');
     checklistZone.innerHTML = etapesActuelles.map((e, i) => {
         const estFait = e.est_complete === 'oui';
+        const fmt = formaterInstructionEtape(e.instruction || '');
         return `
             <div class="check-row ${estFait ? 'checked' : ''}" onclick="basculerEtapeComplete(${e.id}, ${i})">
                 <div class="check-box-ui">✔</div>
-                <div class="check-text-ui" style="font-size:13px; line-height:1.4;">${e.instruction}</div>
+                <div class="check-text-ui" style="font-size:13px; line-height:1.4;">${fmt.instruction}${fmt.badge ? ' ' + fmt.badge : ''}</div>
             </div>
         `;
     }).join('');
@@ -1975,12 +2028,79 @@ function afficherEtapeGuidee(idx) {
         btnNextText.textContent = t('btn_next_step');
     }
 
-    parlerIA(textePropre);
+    // 5. Cacher le box micro-actions de l'étape précédente
+    const microBox = document.getElementById('micro-actions-box');
+    if (microBox) microBox.style.display = 'none';
+
+    // 6. Zoomer l'image et déplacer le viseur AR vers la pièce de cette étape
+    ciblerPieceDansImage(texteRaw);
+
+    const texteVocal = texteRaw.replace(/\[(SAFETY|SECURITE|SÉCURITÉ)\s*:[^\]]*\]/gi, '').trim();
+    parlerIA(texteVocal);
 }
 
 function lireEtapeActiveAudio() {
     const etape = etapesActuelles[indexEtapeActive];
-    if (etape) parlerIA(etape.instruction);
+    if (etape) {
+        const texte = (etape.instruction || '').replace(/\[(SAFETY|SECURITE|SÉCURITÉ)\s*:[^\]]*\]/gi, '').trim();
+        parlerIA(texte);
+    }
+}
+
+function echapperHTML(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+function formaterInstructionEtape(texte) {
+    const match = texte.match(/\[(SAFETY|SECURITE|SÉCURITÉ)\s*:\s*([^\]]+)\]/i);
+    let instruction = texte;
+    let badge = '';
+    if (match) {
+        instruction = texte.replace(match[0], '').trim();
+        badge = `<span style="display:inline-block; margin-top:4px; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.4); color:#fbbf24; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px;">&#9888; ${echapperHTML(match[2].trim())}</span>`;
+    }
+    return { instruction: echapperHTML(instruction), badge };
+}
+
+async function decouperEtapeEnMicroActions() {
+    const etape = etapesActuelles[indexEtapeActive];
+    if (!etape) return;
+    const isFr = getLangue() === 'fr';
+    const btn = document.getElementById('btn-pas-compris');
+    const box = document.getElementById('micro-actions-box');
+    const liste = document.getElementById('micro-actions-list');
+    if (btn) btn.disabled = true;
+    liste.textContent = isFr ? 'Simplification en cours...' : 'Breaking down...';
+    box.style.display = 'block';
+
+    try {
+        const res = await fetch('/api/diagnostic/micro-actions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                instruction: etape.instruction,
+                type_appareil: appareilActuel || 'appareil',
+                langue: getLangue()
+            })
+        });
+        if (!res.ok) throw new Error(`Server ${res.status}`);
+        const data = await res.json();
+        if (data && data.micro_actions) {
+            const lignes = data.micro_actions.split('\n').filter(l => l.trim());
+            liste.innerHTML = lignes.map(l =>
+                `<div style="padding:3px 0; border-bottom:1px solid rgba(251,191,36,0.15);">${echapperHTML(l)}</div>`
+            ).join('');
+            parlerIA(data.micro_actions);
+        } else {
+            liste.textContent = isFr ? 'Impossible de simplifier cette étape.' : 'Could not simplify this step.';
+        }
+    } catch (err) {
+        console.error('Micro-actions error:', err);
+        liste.textContent = isFr ? 'Erreur de connexion. Réessaie.' : 'Connection error. Try again.';
+    }
+    if (btn) btn.disabled = false;
 }
 
 async function basculerEtapeComplete(etapeId, idx) {
@@ -2060,6 +2180,13 @@ async function envoyerMessageChatIA(inputId, containerId) {
     if (waitRow) waitRow.id = `${containerId}-waiting`;
 
     try {
+        let messageEnrichi = msg;
+        if (containerId === 'guided-chat-messages' && etapesActuelles.length > 0) {
+            const resumeEtapes = etapesActuelles.map((e, i) =>
+                `Étape ${i + 1}: ${e.instruction || e.texte || ''}`
+            ).join('\n');
+            messageEnrichi = `[CONTEXTE: L'utilisateur est à l'étape ${indexEtapeActive + 1} de l'inspection guidée]\n${resumeEtapes}\n\nQuestion: ${msg}`;
+        }
         const res = await fetch('/api/diagnostic/continuer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2069,13 +2196,15 @@ async function envoyerMessageChatIA(inputId, containerId) {
                 probleme_decrit: descriptionActuelle,
                 composants: composantsDetectes,
                 historique_messages: historiqueMessages,
-                message_technicien: msg,
+                message_technicien: messageEnrichi,
                 nom_utilisateur: localStorage.getItem('rl_user_name') || null,
                 utilisateur_id: getUtilisateurId(),
                 langue: getLangue()
             })
         });
+        if (!res.ok) throw new Error(`Server ${res.status}`);
         const data = await res.json();
+        if (!data || !data.reponse_ia) throw new Error('Empty AI response');
         const waitEl = document.getElementById(`${containerId}-waiting`);
         if (waitEl) waitEl.remove();
 
@@ -2110,7 +2239,11 @@ async function envoyerMessageChatIA(inputId, containerId) {
     } catch (err) {
         const waitEl = document.getElementById(`${containerId}-waiting`);
         if (waitEl) waitEl.remove();
-        console.error(err);
+        console.error('Erreur chat IA:', err);
+        const fallback = isFr
+            ? `Hmm, j'ai eu un souci de connexion${prenomActuel !== 'Vous' ? ' ' + prenomActuel : ''}. Peux-tu reformuler ta question ? Je suis là pour t'aider.`
+            : `I had a connection issue${prenomActuel !== 'You' ? ' ' + prenomActuel : ''}. Could you rephrase? I'm here to help.`;
+        ajouterMessageChatGPT(containerId, 'Assistant RepairLens', fallback, 'ai');
     }
 }
 
@@ -2399,7 +2532,8 @@ function basculerPlateauVis() {
 
 // Rafraîchir dynamiquement tous les écrans de camera.html quand on clique sur EN | FR
 window.rafraichirVueActuelle = function() {
-    if (composantsDetectes.length > 0 && document.getElementById('screen-ai-vision').classList.contains('active')) {
+    const zoneVision = document.getElementById('zone-vision-inline');
+    if (composantsDetectes.length > 0 && zoneVision && zoneVision.style.display !== 'none') {
         mettreAJourFicheComposant(composantSelectionne);
     }
     if (document.getElementById('screen-ai-diagnosis').classList.contains('active')) {
@@ -2588,6 +2722,50 @@ async function executerDetectionTempsReelVideo() {
 
     if (fluxAppelVideoLive) {
         boucleDetectionId = setTimeout(executerDetectionTempsReelVideo, 450);
+    }
+}
+
+function ciblerPieceDansImage(texteInstruction) {
+    const imgEl = document.getElementById('guided-step-img');
+    const boxAr = document.getElementById('guided-ar-target-box');
+    const labelComp = document.getElementById('guided-comp-label');
+    if (!imgEl || !composantsDetectes || !composantsDetectes.length) return;
+
+    const txtLow = (texteInstruction || '').toLowerCase();
+    const isFr = getLangue() === 'fr';
+    let meilleur = null;
+    let meilleurScore = 0;
+    for (const c of composantsDetectes) {
+        const nomLow = (c.nom || '').toLowerCase();
+        const mots = nomLow.split(/[\s(),:]+/).filter(m => m.length > 2);
+        let score = 0;
+        for (const mot of mots) {
+            if (txtLow.includes(mot)) score++;
+        }
+        if (score > meilleurScore) { meilleurScore = score; meilleur = c; }
+    }
+
+    if (meilleur && meilleurScore > 0) {
+        const cx = meilleur.pos_x || 50;
+        const cy = meilleur.pos_y || 50;
+        const zoomLevel = 1.8;
+        const ox = Math.max(0, Math.min(100, 50 + (50 - cx) * (zoomLevel - 1)));
+        const oy = Math.max(0, Math.min(100, 50 + (50 - cy) * (zoomLevel - 1)));
+        imgEl.style.transition = 'transform 0.6s ease';
+        imgEl.style.transformOrigin = `${cx}% ${cy}%`;
+        imgEl.style.transform = `scale(${zoomLevel})`;
+        if (boxAr) {
+            boxAr.style.left = `${cx}%`;
+            boxAr.style.top = `${cy}%`;
+            boxAr.style.display = 'block';
+        }
+        if (labelComp) {
+            labelComp.textContent = `${isFr ? 'COMPOSANT' : 'COMPONENT'}: ${meilleur.nom.toUpperCase()}`;
+        }
+    } else {
+        imgEl.style.transition = 'transform 0.6s ease';
+        imgEl.style.transform = 'scale(1)';
+        if (boxAr) boxAr.style.display = 'none';
     }
 }
 
