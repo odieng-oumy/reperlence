@@ -484,7 +484,10 @@ async function envoyerMessageLiveChat() {
                 langue: getLangue()
             })
         });
-        if (!res.ok) throw new Error(`Server ${res.status}`);
+        if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            throw new Error(`Server ${res.status}: ${errBody.slice(0, 200)}`);
+        }
         const data = await res.json();
         if (!data || !data.reponse_ia) throw new Error('Empty AI response');
         const waitEl = document.getElementById('live-chat-ai-waiting');
@@ -2202,7 +2205,10 @@ async function envoyerMessageChatIA(inputId, containerId) {
                 langue: getLangue()
             })
         });
-        if (!res.ok) throw new Error(`Server ${res.status}`);
+        if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            throw new Error(`Server ${res.status}: ${errBody.slice(0, 200)}`);
+        }
         const data = await res.json();
         if (!data || !data.reponse_ia) throw new Error('Empty AI response');
         const waitEl = document.getElementById(`${containerId}-waiting`);

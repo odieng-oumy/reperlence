@@ -58,7 +58,8 @@ def obtenir_toutes_sessions(db: Session, utilisateur_id: str = None, limite: int
 
 def mettre_a_jour_session(db: Session, session_id: int, diagnostic: str = None,
                           statut: str = None, probleme_detecte: str = None,
-                          nom_utilisateur: str = None, image_miniature: str = None):
+                          nom_utilisateur: str = None, image_miniature: str = None,
+                          type_appareil: str = None):
     """
     Met à jour le diagnostic et/ou le statut d'une session.
     Appelée quand Muse Spark retourne le diagnostic ou quand la session est résolue.
@@ -75,6 +76,8 @@ def mettre_a_jour_session(db: Session, session_id: int, diagnostic: str = None,
             session.nom_utilisateur = nom_utilisateur
         if image_miniature:
             session.image_miniature = image_miniature
+        if type_appareil:
+            session.type_appareil = type_appareil
         db.commit()
         db.refresh(session)
     return session
