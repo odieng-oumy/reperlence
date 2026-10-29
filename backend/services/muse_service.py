@@ -262,9 +262,9 @@ Do NOT use any emojis. Respond ONLY in valid JSON:
 
     try:
         if image_base64:
-            raw = await _call_llm_vision(prompt, image_base64, max_tokens=4000)
+            raw = await _call_llm_vision(prompt, image_base64, max_tokens=1500)
         else:
-            raw = await _call_llm([{"role": "user", "content": prompt}], max_tokens=4000)
+            raw = await _call_llm([{"role": "user", "content": prompt}], max_tokens=1500)
         out = _extraire_json(raw)
         if out and "besoin_infos" in out:
             return out
@@ -317,9 +317,9 @@ Do NOT use any emojis. Respond ONLY in valid JSON:
 
     try:
         if image_base64:
-            raw = await _call_llm_vision(prompt, image_base64, max_tokens=4000)
+            raw = await _call_llm_vision(prompt, image_base64, max_tokens=2000)
         else:
-            raw = await _call_llm([{"role": "user", "content": prompt}], max_tokens=4000)
+            raw = await _call_llm([{"role": "user", "content": prompt}], max_tokens=2000)
         out = _extraire_json(raw)
         if out and out.get("diagnostic"):
             return out
@@ -358,7 +358,7 @@ Respond in JSON format:
 }}"""
 
     try:
-        raw = await _call_llm([{"role": "user", "content": prompt}], max_tokens=4000)
+        raw = await _call_llm([{"role": "user", "content": prompt}], max_tokens=2000)
         out = _extraire_json(raw)
         if out and out.get("diagnostic"):
             return out
@@ -392,32 +392,18 @@ async def continuer_conversation_ia(
 
     nom_appareil_clair = type_appareil if type_appareil and type_appareil not in ["Appareil", "Appareil electronique", "Electronic Device", "appareil"] else (anciens_appareils[0] if anciens_appareils else type_appareil)
 
-    system_prompt = f"""You are an elite hardware repair engineer with extreme pedagogical clarity. {lang_instruction}
-You are warm, direct, and technically brilliant. You use precise technical names (starting capacitor, thermal fuse, ribbon cable, DC connector) followed by a simple explanation in parentheses so anyone can understand. Only cite specific part numbers if you are certain — never guess a reference.
-User's name: {prenom_actif or 'unknown'}.
-Device: {nom_appareil_clair}
-{memoire_appareils_texte}
+    system_prompt = f"""Elite repair engineer AND friendly human conversation partner. {lang_instruction}
+Warm, natural, precise. You have a real personality — you celebrate wins ("Nice, well done!"), you react to thanks warmly, you can joke briefly and chat naturally like a real person. Use technical names + simple explanation in parentheses. Never guess part numbers.
+User: {prenom_actif or 'unknown'}. Device: {nom_appareil_clair}. {memoire_appareils_texte}
 Problem: {probleme or 'being diagnosed'}
-Components on the device:
-{liste_comp}
+Components: {liste_comp}
 
-STRICT RULES:
-1. Reply DIRECTLY in 2-3 short sentences max.
-2. You KNOW the device is a {nom_appareil_clair}. NEVER ask "what device is it?".
-3. Do NOT use any emojis. Stay professional and direct.
-4. If the user seems lost, suggest a live video call ("proposer_appel_video": true).
-5. Only add "nouvelles_etapes" (1-2 max) if a new concrete action is needed.
+RULES: 2-3 sentences max. No emojis. NEVER ask what device it is. Set "proposer_appel_video":true if user is lost. Add "nouvelles_etapes" (1-2 max) only for new concrete actions.
+If the user thanks you, celebrates, or chats casually — respond naturally and warmly like a friend, then gently steer back to the repair if needed.
+Reply ONLY valid JSON: {{"reponse_ia":"...","proposer_appel_video":false,"nouvelles_etapes":[]}}"""
 
-Respond ONLY in valid JSON:
-{{
-  "reponse_ia": "Your natural, direct response...",
-  "proposer_appel_video": false,
-  "nouvelles_etapes": []
-}}"""
-
-    # Build proper multi-turn conversation history
     messages = [{"role": "system", "content": system_prompt}]
-    for m in (historique_messages or [])[-8:]:
+    for m in (historique_messages or [])[-6:]:
         auteur = m.get("auteur", "")
         texte = m.get("texte", "")
         if "Assistant" in auteur or "Muse" in auteur or "RepairLens" in auteur:
@@ -427,7 +413,7 @@ Respond ONLY in valid JSON:
     messages.append({"role": "user", "content": message_technicien})
 
     try:
-        raw = await _call_llm(messages, max_tokens=4000)
+        raw = await _call_llm(messages, max_tokens=1000)
         out = _extraire_json(raw)
         if not out or not out.get("reponse_ia"):
             clean_text = re.sub(r"```(?:json)?|```", "", raw).strip()
@@ -584,10 +570,14 @@ async def analyser_frame_appel_live(
     if _is_api_configured() and frame_base64:
         try:
             prompt_live = (
-                f"You are an AI repair co-pilot in a LIVE video call watching {prenom or 'the user'} repair a {type_appareil}. "
-                f"Current step #{numero_etape}: {etape_actuelle}. "
-                f"User just said: '{parole_utilisateur or 'Watching live'}'. "
-                f"Reply in {'English' if is_en else 'French'} in 1-2 short spoken sentences. No emojis."
+                f"You are a friendly, real human technician on a LIVE video call with {prenom or 'someone'}. "
+                f"You are helping them repair a {type_appareil}. Current step #{numero_etape}: {etape_actuelle}. "
+                f"User just said: '{parole_utilisateur or '(watching silently)'}'. "
+                f"Talk like a real person on a video call — natural, warm, conversational. "
+                f"If they ask something off-topic, chat naturally then gently come back to the repair. "
+                f"If they celebrate or thank you, be genuinely happy for them. "
+                f"If they seem stuck, encourage them. "
+                f"Reply in {'English' if is_en else 'French'} in 1-3 short spoken sentences. No emojis."
             )
             raw = await _call_llm_vision(prompt_live, frame_base64, max_tokens=2000)
             if raw:

@@ -324,7 +324,7 @@ Respond ONLY in valid JSON:
 }}"""
 
     try:
-        raw = await _call_vision(prompt, b64_propre, max_tokens=4000)
+        raw = await _call_vision(prompt, b64_propre, max_tokens=1000)
         parsed = _extraire_json(raw)
         if isinstance(parsed, dict) and parsed.get("type_appareil"):
             return {
