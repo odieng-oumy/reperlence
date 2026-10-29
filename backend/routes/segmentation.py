@@ -72,7 +72,7 @@ async def analyser_image(donnees: SegmenterRequest, db: Session = Depends(get_db
         session_id = nouvelle_session.id
 
     try:
-        resultat_seg = await segmenter_image(image_base64, type_appareil)
+        resultat_seg = await segmenter_image(image_base64, type_appareil, langue=donnees.langue)
     except Exception as e:
         raise HTTPException(
             status_code=503,
@@ -191,7 +191,7 @@ async def segmenter_au_point(donnees: SegmenterPointRequest, db: Session = Depen
     point_y       = donnees.point_y
     type_appareil = donnees.type_appareil
 
-    comp = await segmenter_point_precis(image_base64, point_x, point_y, type_appareil)
+    comp = await segmenter_point_precis(image_base64, point_x, point_y, type_appareil, langue=donnees.langue)
 
     nouveau = crud.ajouter_composant(
         db=db,

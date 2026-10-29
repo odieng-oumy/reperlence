@@ -15,6 +15,7 @@ class SegmenterRequest(BaseModel):
     session_id: Optional[int] = None
     image_base64: str = Field(..., min_length=10, max_length=10_000_000)
     type_appareil: str = Field(default="appareil inconnu", max_length=200)
+    langue: str = Field(default="fr", pattern="^(fr|en)$")
 
 
 class SegmenterPointRequest(BaseModel):
@@ -23,6 +24,7 @@ class SegmenterPointRequest(BaseModel):
     point_x: float = Field(default=50.0, ge=0, le=100)
     point_y: float = Field(default=50.0, ge=0, le=100)
     type_appareil: str = Field(default="appareil", max_length=200)
+    langue: str = Field(default="fr", pattern="^(fr|en)$")
 
 
 class VideoAnalyseRequest(BaseModel):
@@ -111,6 +113,12 @@ class CameraFrameRequest(BaseModel):
 
 class ModifierEtatRequest(BaseModel):
     etat: str = Field(..., pattern="^(detecte|suspect_ia|confirme_user|normal|inconnu|defectueux)$")
+
+
+class MicroActionsRequest(BaseModel):
+    instruction: str = Field(..., min_length=3, max_length=500)
+    type_appareil: str = Field(default="appareil", max_length=200)
+    langue: str = Field(default="fr", pattern="^(fr|en)$")
 
 
 class DetourerRequest(BaseModel):

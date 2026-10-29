@@ -12,7 +12,7 @@ from backend.database import crud
 from backend.schemas import (
     EvaluerRequest, DiagnosticFinalRequest, ContinuerRequest,
     VerifierEtapeRequest, AppelVideoLiveRequest, GuideVisuelRequest,
-    GenererDiagnosticRequest
+    GenererDiagnosticRequest, MicroActionsRequest
 )
 from backend.services.muse_service import (
     generer_diagnostic,
@@ -22,6 +22,7 @@ from backend.services.muse_service import (
     verifier_etape_visuelle,
     extraire_prenom_message,
     decrire_visuellement_composant_debutant,
+    decomposer_etape,
     analyser_frame_appel_live
 )
 
@@ -432,4 +433,19 @@ async def verifier_etape_photo(donnees: VerifierEtapeRequest, db: Session = Depe
         "statut": "succes",
         "valide": resultat.get("valide", True),
         "commentaire_ia": resultat.get("commentaire_ia", "")
+    })
+
+
+@router.post("/micro-actions")
+async def obtenir_micro_actions(donnees: MicroActionsRequest):
+    try:
+        resultat = await decomposer_etape(
+            donnees.instruction, donnees.type_appareil, donnees.langue
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return JSONResponse(content={
+        "statut": "succes",
+        "micro_actions": resultat.get("micro_actions", "")
     })
