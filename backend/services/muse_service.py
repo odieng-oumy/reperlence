@@ -129,7 +129,7 @@ async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -
                     return resp.json()["choices"][0]["message"].get("content") or ""
                 print(f"[LLM] {'Meta' if is_meta else 'Fallback'} error {resp.status_code}: {resp.text[:300]}")
             except Exception as e:
-                print(f"[LLM] {'Meta' if is_meta else 'Fallback'} exception: {e}")
+                print(f"[LLM] {'Meta' if is_meta else 'Fallback'} exception: {type(e).__name__}: {e}")
     raise ValueError("All LLM providers failed")
 
 
