@@ -71,6 +71,20 @@ def verification_serveur():
         "version": "1.0.0"
     }
 
+@app.get("/api/debug/models")
+async def lister_modeles_api():
+    import httpx
+    api_url = os.getenv("META_API_URL", "").strip().rstrip("/")
+    api_key = os.getenv("META_API_KEY", "").strip()
+    if not api_url or not api_key:
+        return {"error": "API not configured"}
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+            resp = await client.get(f"{api_url}/models", headers={"Authorization": f"Bearer {api_key}"})
+            return {"status": resp.status_code, "url": f"{api_url}/models", "body": resp.json() if resp.status_code == 200 else resp.text[:1000]}
+    except Exception as e:
+        return {"error": str(e)}
+
 # ---------------------------------------------------------------
 # Servir les fichiers statiques du frontend (si presents)
 # ---------------------------------------------------------------
