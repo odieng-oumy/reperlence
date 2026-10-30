@@ -75,25 +75,48 @@ def verification_serveur():
 async def lister_modeles_api():
     import httpx
     api_key = os.getenv("META_API_KEY", "").strip()
+    team_id = os.getenv("META_TEAM_ID", "").strip()
+    project_id = os.getenv("META_PROJECT_ID", "").strip()
     if not api_key:
         return {"error": "API not configured"}
     results = {}
-    urls = ["https://api.meta.ai/v1", "https://api.llama.com/v1"]
-    headers_variants = [
-        {"name": "Bearer", "headers": {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}},
-        {"name": "x-api-key", "headers": {"x-api-key": api_key, "Content-Type": "application/json"}},
-    ]
+    base = "https://api.meta.ai/v1"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-        for base_url in urls:
-            for hv in headers_variants:
-                key = f"{base_url} ({hv['name']})"
-                try:
-                    resp = await client.get(f"{base_url}/models", headers=hv["headers"])
-                    body = resp.json() if resp.status_code == 200 else resp.text[:500]
-                    model_count = len(body.get("data", [])) if isinstance(body, dict) else "N/A"
-                    results[key] = {"status": resp.status_code, "models": model_count, "body": body}
-                except Exception as e:
-                    results[key] = {"error": str(e)}
+        # Test 1: models sans params
+        try:
+            r = await client.get(f"{base}/models", headers=headers)
+            results["models_plain"] = {"status": r.status_code, "body": r.json() if r.status_code == 200 else r.text[:500]}
+        except Exception as e:
+            results["models_plain"] = {"error": str(e)}
+        # Test 2: models avec team_id/project_id en headers
+        if team_id:
+            try:
+                h2 = {**headers, "x-team-id": team_id, "x-project-id": project_id}
+                r = await client.get(f"{base}/models", headers=h2)
+                results["models_with_team_header"] = {"status": r.status_code, "body": r.json() if r.status_code == 200 else r.text[:500]}
+            except Exception as e:
+                results["models_with_team_header"] = {"error": str(e)}
+        # Test 3: chat/completions simple avec team headers
+        try:
+            h3 = {**headers}
+            if team_id:
+                h3["x-team-id"] = team_id
+                h3["x-project-id"] = project_id
+            r = await client.post(f"{base}/chat/completions", headers=h3, json={
+                "model": "muse-spark-1.3", "messages": [{"role": "user", "content": "Say hi"}], "max_tokens": 10
+            })
+            results["chat_with_team"] = {"status": r.status_code, "body": r.text[:500]}
+        except Exception as e:
+            results["chat_with_team"] = {"error": str(e)}
+        # Test 4: chat avec model dans URL style
+        try:
+            r = await client.post(f"{base}/chat/completions", headers=headers, json={
+                "model": "meta-llama/muse-spark-1.3", "messages": [{"role": "user", "content": "Say hi"}], "max_tokens": 10
+            })
+            results["chat_prefixed_model"] = {"status": r.status_code, "body": r.text[:500]}
+        except Exception as e:
+            results["chat_prefixed_model"] = {"error": str(e)}
     return results
 
 # ---------------------------------------------------------------
