@@ -160,12 +160,17 @@ function remplirInfosProfil() {
             : 'Connect with Google to keep your repair history and access it from any device.';
 
         const btnContainer = document.getElementById('profile-google-login-btn');
-        if (btnContainer && typeof google !== 'undefined' && google.accounts && window._googleClientId) {
-            btnContainer.innerHTML = '';
-            google.accounts.id.renderButton(btnContainer, {
-                theme: 'filled_black', size: 'large', shape: 'pill',
-                text: 'signin_with', width: 280, locale: isFr ? 'fr' : 'en'
-            });
+        if (btnContainer) {
+            if (typeof google !== 'undefined' && google.accounts && window._googleClientId) {
+                btnContainer.innerHTML = '';
+                google.accounts.id.renderButton(btnContainer, {
+                    theme: 'filled_black', size: 'large', shape: 'pill',
+                    text: 'signin_with', width: 280, locale: isFr ? 'fr' : 'en'
+                });
+            } else {
+                btnContainer.innerHTML = '<p style="font-size:12px;color:var(--cyan-neon);cursor:pointer;" onclick="initGoogleAuth(0)">Chargement Google Sign-In...</p>';
+                initGoogleAuth(0);
+            }
         }
         return;
     }

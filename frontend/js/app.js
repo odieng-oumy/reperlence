@@ -75,6 +75,10 @@ async function initGoogleAuth(retries) {
             });
         }
 
+        if (typeof remplirInfosProfil === 'function' && !estConnecteGoogle()) {
+            remplirInfosProfil();
+        }
+
     } catch (e) {
         console.log('[AUTH] Google Sign-In not available:', e.message);
     }
