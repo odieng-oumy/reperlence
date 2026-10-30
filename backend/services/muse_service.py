@@ -82,7 +82,7 @@ async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -
         return ""
     url = f"{META_API_URL}/chat/completions"
     used_model = model or META_TEXT_MODEL
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
         resp = await client.post(
             url,
             headers=_headers(),
@@ -103,7 +103,7 @@ async def _call_llm_vision(prompt: str, image_base64: str, max_tokens: int = 400
     if not _is_api_configured() or not image_base64:
         return ""
     b64 = image_base64.split(",", 1)[1] if "," in image_base64 else image_base64
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
         resp = await client.post(
             f"{META_API_URL}/chat/completions",
             headers=_headers(),
