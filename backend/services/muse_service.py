@@ -12,19 +12,45 @@ from dotenv import load_dotenv
 load_dotenv()
 
 META_API_KEY = os.getenv("META_API_KEY", "").strip()
-META_API_URL = os.getenv("META_API_URL", "https://api.llama.com/v1").strip().rstrip("/")
-META_VISION_MODEL = os.getenv("META_VISION_MODEL", "Muse-Spark-1.3").strip()
-META_TEXT_MODEL = os.getenv("META_TEXT_MODEL", "Muse-Spark-1.3").strip()
+META_API_URL = os.getenv("META_API_URL", "https://api.meta.ai/v1").strip().rstrip("/")
+META_VISION_MODEL = os.getenv("META_VISION_MODEL", "muse-spark-1.3").strip()
+META_TEXT_MODEL = os.getenv("META_TEXT_MODEL", "muse-spark-1.3").strip()
 
-print(f"[CONFIG] API URL: {META_API_URL}")
-print(f"[CONFIG] API Key: {META_API_KEY[:8]}...{META_API_KEY[-4:] if len(META_API_KEY) > 12 else '???'} (len={len(META_API_KEY)})")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_API_URL = "https://api.groq.com/openai/v1"
+GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+
+print(f"[CONFIG] Meta API: {META_API_URL} | key={META_API_KEY[:8]}... (len={len(META_API_KEY)})")
+print(f"[CONFIG] Groq fallback: {'configured' if GROQ_API_KEY else 'not set'}")
 print(f"[CONFIG] Models: text={META_TEXT_MODEL}, vision={META_VISION_MODEL}")
 
 TIMEOUT = 60
 
 
 def _is_api_configured() -> bool:
-    return bool(META_API_KEY) and META_API_KEY != "your_meta_api_key_here"
+    return (bool(META_API_KEY) and META_API_KEY != "your_meta_api_key_here") or bool(GROQ_API_KEY)
+
+
+def _get_api_config(model_override=None):
+    """Retourne (url, headers, model) — Meta en priorite, Groq en fallback."""
+    if META_API_KEY and META_API_KEY != "your_meta_api_key_here":
+        return (
+            META_API_URL,
+            {"Authorization": f"Bearer {META_API_KEY}", "Content-Type": "application/json"},
+            model_override,
+            True
+        )
+    return None
+
+def _get_groq_config():
+    if GROQ_API_KEY:
+        return (
+            GROQ_API_URL,
+            {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+            GROQ_MODEL,
+            False
+        )
+    return None
 
 
 def _headers() -> dict:
@@ -80,47 +106,69 @@ async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -
     if not _is_api_configured():
         print("[LLM] API not configured!")
         return ""
-    url = f"{META_API_URL}/chat/completions"
-    used_model = model or META_TEXT_MODEL
+    configs = []
+    meta = _get_api_config(model or META_TEXT_MODEL)
+    if meta:
+        configs.append(meta)
+    groq = _get_groq_config()
+    if groq:
+        configs.append(groq)
+    if not configs:
+        return ""
     async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        resp = await client.post(
-            url,
-            headers=_headers(),
-            json={
-                "model": used_model,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": 0.7,
-            },
-        )
-        if resp.status_code != 200:
-            print(f"[LLM] Error {resp.status_code} from {url} model={used_model}: {resp.text[:500]}")
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"].get("content") or ""
+        for api_url, headers, used_model, is_meta in configs:
+            url = f"{api_url}/chat/completions"
+            try:
+                resp = await client.post(url, headers=headers, json={
+                    "model": used_model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": 0.7,
+                })
+                if resp.status_code == 200:
+                    provider = "Meta" if is_meta else "Groq"
+                    print(f"[LLM] {provider} OK ({used_model})")
+                    return resp.json()["choices"][0]["message"].get("content") or ""
+                print(f"[LLM] {'Meta' if is_meta else 'Groq'} error {resp.status_code}: {resp.text[:300]}")
+            except Exception as e:
+                print(f"[LLM] {'Meta' if is_meta else 'Groq'} exception: {e}")
+    raise ValueError("All LLM providers failed")
 
 
 async def _call_llm_vision(prompt: str, image_base64: str, max_tokens: int = 4000) -> str:
     if not _is_api_configured() or not image_base64:
         return ""
     b64 = image_base64.split(",", 1)[1] if "," in image_base64 else image_base64
+    vision_msg = [{"role": "user", "content": [
+        {"type": "text", "text": prompt},
+        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
+    ]}]
+    configs = []
+    meta = _get_api_config(META_VISION_MODEL)
+    if meta:
+        configs.append(meta)
+    groq = _get_groq_config()
+    if groq:
+        configs.append(groq)
+    if not configs:
+        return ""
     async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        resp = await client.post(
-            f"{META_API_URL}/chat/completions",
-            headers=_headers(),
-            json={
-                "model": META_VISION_MODEL,
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
-                    ]
-                }],
-                "max_tokens": max_tokens,
-            },
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"].get("content") or ""
+        for api_url, headers, used_model, is_meta in configs:
+            url = f"{api_url}/chat/completions"
+            try:
+                resp = await client.post(url, headers=headers, json={
+                    "model": used_model,
+                    "messages": vision_msg,
+                    "max_tokens": max_tokens,
+                })
+                if resp.status_code == 200:
+                    provider = "Meta" if is_meta else "Groq"
+                    print(f"[LLM-Vision] {provider} OK ({used_model})")
+                    return resp.json()["choices"][0]["message"].get("content") or ""
+                print(f"[LLM-Vision] {'Meta' if is_meta else 'Groq'} error {resp.status_code}: {resp.text[:300]}")
+            except Exception as e:
+                print(f"[LLM-Vision] {'Meta' if is_meta else 'Groq'} exception: {e}")
+    raise ValueError("All LLM vision providers failed")
 
 
 def chercher_photo_reelle_internet(terme_recherche: str, svg_type: str) -> str:
