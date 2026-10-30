@@ -284,9 +284,10 @@
                             <button type="button" class="btn-voice-pill" id="btn-chat-video-call" onclick="demarrerAppelVideoDepuisChat()" title="Démarrer l'Appel Vidéo Live avec l'IA" style="padding:6px 10px; font-size:14px; color:#38bdf8; background:rgba(0,240,255,0.1); border-color:var(--border-cyan);"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></button>
                             <button type="button" class="btn-voice-pill" id="mic-issue" onclick="dicterChampLiveChat()" title="Dicter à la voix" style="padding:6px 10px; font-size:14px;"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                             <button type="button" class="btn-voice-pill" id="btn-sound-diag" onclick="enregistrerBruitAppareil()" title="Écouter le bruit du moteur (Acoustique)" style="padding:6px 10px; font-size:14px;"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 1a9 9 0 0 0-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7a9 9 0 0 0-9-9z"/></svg></button>
-                            <input type="text" id="input-probleme" class="chatgpt-input-field"
+                            <textarea id="input-probleme" class="chatgpt-input-field" rows="1"
                                    placeholder="Répondez à l'assistant ou décrivez la panne..."
-                                   onkeypress="if(event.key==='Enter') envoyerMessageLiveChat()">
+                                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerMessageLiveChat()}"
+                                   oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
                             <button type="button" class="btn-voice-pill" onclick="envoyerMessageLiveChat()" title="Envoyer" style="padding:6px 12px; font-size:14px; background:var(--cyan-neon); color:#04121a;"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                         </div>
 
@@ -409,8 +410,9 @@
                     <div class="ask-bar-bottom">
                         <button type="button" class="btn-voice-pill" onclick="demarrerAppelVideoDepuisChat()" title="Démarrer l'Appel Vidéo Live avec l'IA" style="color:#38bdf8; background:rgba(0,240,255,0.1); border-color:var(--border-cyan);"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></button>
                         <button type="button" class="btn-voice-pill" id="mic-diag-chat" onclick="dicterChamp('input-diag-chat', 'mic-diag-chat', true)"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
-                        <input type="text" id="input-diag-chat" data-i18n-placeholder="followup_chat_placeholder" placeholder="Tell Muse Spark what you observe..."
-                               onkeypress="if(event.key==='Enter') envoyerMessageChatIA('input-diag-chat', 'diag-chat-messages')">
+                        <textarea id="input-diag-chat" class="chatgpt-input-field" rows="1" data-i18n-placeholder="followup_chat_placeholder" placeholder="Tell Muse Spark what you observe..."
+                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerMessageChatIA('input-diag-chat','diag-chat-messages')}"
+                               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
                         <button type="button" class="btn-voice-pill" onclick="envoyerMessageChatIA('input-diag-chat', 'diag-chat-messages')"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                     </div>
                 </div>
@@ -580,8 +582,9 @@
                 <div class="ask-bar-bottom">
                     <button type="button" class="btn-voice-pill" onclick="demarrerAppelVideoDepuisChat()" title="Démarrer l'Appel Vidéo Live avec l'IA" style="color:#38bdf8; background:rgba(0,240,255,0.1); border-color:var(--border-cyan);"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></button>
                     <button type="button" class="btn-voice-pill" id="mic-guided-chat" onclick="dicterChamp('input-guided-chat', 'mic-guided-chat', true)"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
-                    <input type="text" id="input-guided-chat" data-i18n-placeholder="guided_chat_placeholder" placeholder="Explain what is still not working..."
-                           onkeypress="if(event.key==='Enter') envoyerMessageChatIA('input-guided-chat', 'guided-chat-messages')">
+                    <textarea id="input-guided-chat" class="chatgpt-input-field" rows="1" data-i18n-placeholder="guided_chat_placeholder" placeholder="Explain what is still not working..."
+                           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerMessageChatIA('input-guided-chat','guided-chat-messages')}"
+                           oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
                     <button type="button" class="btn-voice-pill" onclick="envoyerMessageChatIA('input-guided-chat', 'guided-chat-messages')"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                 </div>
             </div>

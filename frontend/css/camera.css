@@ -1249,6 +1249,10 @@
     font-family: inherit;
     outline: none;
     padding: 4px 0;
+    resize: none;
+    overflow-y: auto;
+    max-height: 120px;
+    line-height: 1.4;
 }
 
 .chatgpt-input-field::placeholder {

@@ -440,6 +440,7 @@ async function envoyerMessageLiveChat() {
     if (!msg) return;
 
     input.value = '';
+    input.style.height = 'auto';
     const isFr = getLangue() === 'fr';
     const prenom = localStorage.getItem('rl_user_name') || (isFr ? 'Vous' : 'You');
 
@@ -607,9 +608,14 @@ function ouvrirModeCapture(mode) {
 
         if (thread) {
             thread.innerHTML = '';
+            const prenom = localStorage.getItem('rl_user_name') || '';
             const msgIntro = getLangue() === 'fr'
-                ? "Bonjour ! Décris-moi l'appareil que tu souhaites réparer et ce qui ne va pas (ex: 'Mon ventilateur sent le chaud et s'arrête', 'Ma cafetière fuit'), ou utilise le micro  pour me parler."
-                : "Hello! Describe the device you want to repair and what's going wrong (e.g. 'My fan smells like burning and stops', 'Coffee maker leaks'), or use the mic  to talk to me.";
+                ? (prenom
+                    ? `Salut ${prenom} ! Decris-moi l'appareil que tu souhaites reparer et ce qui ne va pas (ex: 'Mon ventilateur sent le chaud et s'arrete', 'Ma cafetiere fuit'), ou utilise le micro pour me parler.`
+                    : "Bonjour ! Decris-moi l'appareil que tu souhaites reparer et ce qui ne va pas (ex: 'Mon ventilateur sent le chaud et s'arrete', 'Ma cafetiere fuit'), ou utilise le micro pour me parler.")
+                : (prenom
+                    ? `Hey ${prenom}! Describe the device you want to repair and what's going wrong (e.g. 'My fan smells like burning and stops', 'Coffee maker leaks'), or use the mic to talk to me.`
+                    : "Hello! Describe the device you want to repair and what's going wrong (e.g. 'My fan smells like burning and stops', 'Coffee maker leaks'), or use the mic to talk to me.");
             ajouterMessageChatGPT('live-chat-thread', 'Assistant RepairLens', msgIntro, 'ai');
             historiqueMessages = [
                 { auteur: 'Assistant RepairLens', texte: msgIntro }
@@ -2178,6 +2184,7 @@ async function envoyerMessageChatIA(inputId, containerId) {
     const prenomActuel = localStorage.getItem('rl_user_name') || (isFr ? 'Vous' : 'You');
     ajouterMessageChatGPT(containerId, prenomActuel, msg, 'user');
     input.value = '';
+    input.style.height = 'auto';
 
     const waitRow = ajouterMessageChatGPT(containerId, 'Assistant RepairLens', isFr ? 'Réflexion en cours...' : 'Thinking...', 'ai');
     if (waitRow) waitRow.id = `${containerId}-waiting`;

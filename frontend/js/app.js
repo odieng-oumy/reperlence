@@ -156,17 +156,7 @@ function actualiserEtatConnexion() {
         const photo = localStorage.getItem('repairlens_photo');
 
         if (btnGoogle) btnGoogle.style.display = 'none';
-        if (zoneUser) {
-            zoneUser.style.display = 'flex';
-            zoneUser.innerHTML = `
-                ${photo
-                    ? `<img src="${photo}" alt="${nom}" class="google-avatar" referrerpolicy="no-referrer">`
-                    : `<span class="avatar-btn">${getInitialesUtilisateur()}</span>`}
-                <button type="button" class="google-logout-btn" onclick="deconnexionGoogle()" title="${getLangue() === 'fr' ? 'Se deconnecter' : 'Sign out'}">
-                    <svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-                </button>
-            `;
-        }
+        if (zoneUser) { zoneUser.style.display = 'none'; zoneUser.innerHTML = ''; }
         if (avatarBadge) {
             if (photo) {
                 avatarBadge.innerHTML = `<img src="${photo}" alt="${nom}" class="google-avatar" referrerpolicy="no-referrer">`;
@@ -470,7 +460,7 @@ function appliquerTraductionsPage() {
     });
 
     const avatarEl = document.getElementById('user-avatar-badge');
-    if (avatarEl) {
+    if (avatarEl && !estConnecteGoogle()) {
         avatarEl.textContent = getInitialesUtilisateur();
     }
 }
