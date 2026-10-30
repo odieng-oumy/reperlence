@@ -53,6 +53,7 @@ async function initGoogleAuth() {
                 locale: getLangue() === 'fr' ? 'fr' : 'en'
             });
         }
+
     } catch (e) {
         console.log('[AUTH] Google Sign-In not available:', e.message);
     }
@@ -82,12 +83,16 @@ async function onGoogleSignIn(response) {
         const isFr = getLangue() === 'fr';
         afficherToast(isFr ? `Bienvenue ${data.nom.split(' ')[0]} !` : `Welcome ${data.nom.split(' ')[0]}!`);
 
+        const modal = document.getElementById('auth-welcome-modal');
+        if (modal) modal.remove();
+
         if (typeof chargerPageAccueil === 'function') chargerPageAccueil();
         if (typeof chargerHistorique === 'function') chargerHistorique();
     } catch (e) {
         console.error('[AUTH] Error:', e);
     }
 }
+
 
 function deconnexionGoogle() {
     localStorage.removeItem('repairlens_google_uid');
@@ -112,6 +117,14 @@ function actualiserEtatConnexion() {
     const btnGoogle = document.getElementById('google-signin-btn');
     const zoneUser = document.getElementById('google-user-info');
     const avatarBadge = document.getElementById('user-avatar-badge');
+
+    const navProfileLabels = document.querySelectorAll('[data-i18n="nav_profile"]');
+    const isFr = getLangue() === 'fr';
+    navProfileLabels.forEach(el => {
+        el.textContent = connected
+            ? (isFr ? 'PROFIL' : 'PROFILE')
+            : (isFr ? 'CONNEXION' : 'SIGN IN');
+    });
 
     if (connected) {
         const nom = getNomUtilisateur();

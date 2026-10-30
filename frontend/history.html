@@ -60,47 +60,53 @@
              ========================================================= -->
         <section id="view-profile" style="display:none;">
             <div class="history-header">
-                <h1 class="history-main-title" data-i18n="profile_title">Technician Profile</h1>
+                <h1 class="history-main-title" id="profile-page-title">Technician Profile</h1>
                 <button type="button" class="icon-circle-btn" onclick="afficherOngletHistory('history')"><svg style="width:14px;height:14px;vertical-align:middle;fill:currentColor;" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
             </div>
 
-            <div class="profile-card">
-                <div class="profile-avatar-large" id="profile-big-initials">RL</div>
-                <h2 id="profile-display-name" style="font-size:20px; font-weight:800; margin-bottom:4px;">Technician</h2>
-                <p id="profile-uid-text" style="font-size:11px; color:var(--text-muted); margin-bottom:16px;"></p>
+            <!-- Vue NON connecté : page de connexion -->
+            <div id="profile-not-connected" class="auth-login-page">
+                <img src="/static/assets/logo-repairlens.svg" alt="RepairLens" style="width:56px;height:56px;margin-bottom:16px;filter:drop-shadow(0 0 8px rgba(0,240,255,0.5));">
+                <h2 id="auth-login-title">Sign in to save your repairs</h2>
+                <p id="auth-login-desc">Connect with Google to keep your repair history and access it from any device.</p>
+                <div id="profile-google-login-btn" style="margin-bottom:12px;"></div>
+            </div>
 
-                <div class="stats-grid-3">
-                    <div class="stat-mini-box">
-                        <div class="stat-mini-num" id="stat-total-count">0</div>
-                        <div class="stat-mini-label">Total</div>
-                    </div>
-                    <div class="stat-mini-box">
-                        <div class="stat-mini-num" id="stat-progress-count">0</div>
-                        <div class="stat-mini-label" data-i18n="filter_progress">In Progress</div>
-                    </div>
-                    <div class="stat-mini-box">
-                        <div class="stat-mini-num" id="stat-completed-count">0</div>
-                        <div class="stat-mini-label" data-i18n="filter_completed">Completed</div>
-                    </div>
-                </div>
+            <!-- Vue connecté : profil complet -->
+            <div id="profile-connected" style="display:none;">
+                <div class="profile-card">
+                    <div class="profile-avatar-large" id="profile-big-initials">RL</div>
+                    <h2 id="profile-display-name" style="font-size:20px; font-weight:800; margin-bottom:4px;">Technician</h2>
+                    <p id="profile-uid-text" style="font-size:11px; color:var(--text-muted); margin-bottom:16px;"></p>
 
-                <div style="text-align:left; margin-top:16px;">
-                    <label style="font-size:12px; font-weight:700; color:var(--text-gray); display:block; margin-bottom:6px;">
-                        YOUR NAME / PSEUDO
-                    </label>
-                    <input type="text" id="input-profile-name" class="repair-card"
-                           style="width:100%; padding:12px 14px; color:var(--text-white); cursor:text; margin-bottom:12px;"
-                           placeholder="Ex: Oumy - Technician">
-                    <button type="button" class="btn-cyan" onclick="sauvegarderProfilNom()">
-                        Save Profile
-                    </button>
-                </div>
+                    <div class="stats-grid-3">
+                        <div class="stat-mini-box">
+                            <div class="stat-mini-num" id="stat-total-count">0</div>
+                            <div class="stat-mini-label">Total</div>
+                        </div>
+                        <div class="stat-mini-box">
+                            <div class="stat-mini-num" id="stat-progress-count">0</div>
+                            <div class="stat-mini-label" data-i18n="filter_progress">In Progress</div>
+                        </div>
+                        <div class="stat-mini-box">
+                            <div class="stat-mini-num" id="stat-completed-count">0</div>
+                            <div class="stat-mini-label" data-i18n="filter_completed">Completed</div>
+                        </div>
+                    </div>
 
-                <div style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06);">
-                    <label style="font-size:12px; font-weight:700; color:var(--text-gray); display:block; margin-bottom:10px;">
-                        CONNEXION GOOGLE
-                    </label>
-                    <div id="profile-google-section"></div>
+                    <div style="text-align:left; margin-top:16px;">
+                        <label style="font-size:12px; font-weight:700; color:var(--text-gray); display:block; margin-bottom:6px;" data-i18n="your_name_label">
+                            YOUR NAME / PSEUDO
+                        </label>
+                        <input type="text" id="input-profile-name" class="repair-card"
+                               style="width:100%; padding:12px 14px; color:var(--text-white); cursor:text; margin-bottom:12px;"
+                               placeholder="Ex: Oumy - Technician">
+                        <button type="button" class="btn-cyan" onclick="sauvegarderProfilNom()" data-i18n="save_profile_btn">
+                            Save Profile
+                        </button>
+                    </div>
+
+                    <div id="profile-google-section" style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06);"></div>
                 </div>
             </div>
         </section>
