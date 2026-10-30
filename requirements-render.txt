@@ -1,0 +1,32 @@
+# Requirements alleges pour deploiement Render
+# SAM 2 et PyTorch exclus (trop lourds, fonctionnalites optionnelles)
+
+# --- Serveur Web ---
+fastapi
+uvicorn[standard]
+
+# --- Base de donnees PostgreSQL ---
+sqlalchemy
+psycopg[binary]
+alembic
+
+# --- Variables d'environnement ---
+python-dotenv
+
+# --- Traitement d'images ---
+Pillow
+opencv-python-headless
+numpy
+
+# --- Appels API externes ---
+requests
+httpx
+
+# --- Validation des donnees ---
+pydantic
+
+# --- WebSockets ---
+websockets
+
+# --- Upload de fichiers ---
+python-multipart

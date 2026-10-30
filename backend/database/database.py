@@ -13,9 +13,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # URL de connexion à PostgreSQL
-# Format : postgresql://utilisateur:motdepasse@hote:port/nom_base
-# psycopg3 utilise "postgresql+psycopg" au lieu de "postgresql"
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:postgres@localhost:5432/repairlens_db")
+# Render fournit postgres:// mais SQLAlchemy a besoin de postgresql+psycopg://
+_raw_url = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:postgres@localhost:5432/repairlens_db")
+if _raw_url.startswith("postgres://"):
+    _raw_url = _raw_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif _raw_url.startswith("postgresql://") and "+psycopg" not in _raw_url:
+    _raw_url = _raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+DATABASE_URL = _raw_url
 
 # Créer le moteur de connexion PostgreSQL
 engine = create_engine(
