@@ -71,6 +71,23 @@ def verification_serveur():
         "version": "1.0.0"
     }
 
+@app.get("/api/debug/groq-models")
+async def lister_modeles_groq():
+    import httpx
+    groq_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not groq_key:
+        return {"error": "GROQ_API_KEY not set"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {groq_key}"})
+            if resp.status_code == 200:
+                models = [m["id"] for m in resp.json().get("data", [])]
+                llama = [m for m in models if "llama" in m.lower()]
+                return {"llama_models": sorted(llama), "total": len(models)}
+            return {"status": resp.status_code, "body": resp.text[:500]}
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/api/debug/models")
 async def lister_modeles_api():
     import httpx

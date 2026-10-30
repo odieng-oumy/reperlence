@@ -18,7 +18,7 @@ META_TEXT_MODEL = os.getenv("META_TEXT_MODEL", "muse-spark-1.3").strip()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_API_URL = "https://api.groq.com/openai/v1"
-GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-4-scout-17b-16e-instruct").strip()
 
 print(f"[CONFIG] Meta API: {META_API_URL} | key={META_API_KEY[:8]}... (len={len(META_API_KEY)})")
 print(f"[CONFIG] Groq fallback: {'configured' if GROQ_API_KEY else 'not set'}")
