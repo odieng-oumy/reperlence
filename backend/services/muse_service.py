@@ -412,35 +412,57 @@ Reply ONLY valid JSON: {{"reponse_ia":"...","proposer_appel_video":false,"nouvel
             messages.append({"role": "user", "content": texte})
     messages.append({"role": "user", "content": message_technicien})
 
-    try:
-        raw = await _call_llm(messages, max_tokens=1000)
-        out = _extraire_json(raw)
-        if not out or not out.get("reponse_ia"):
-            clean_text = re.sub(r"```(?:json)?|```", "", raw).strip()
-            if clean_text and not clean_text.startswith("{"):
-                out = {"reponse_ia": clean_text, "nouvelles_etapes": []}
-            else:
-                raise ValueError("Empty response from LLM")
+    import asyncio
+    for attempt in range(2):
+        try:
+            raw = await _call_llm(messages, max_tokens=1000)
+            print(f"[LLM] Chat attempt {attempt+1}, raw length: {len(raw)}, first 100: {raw[:100]}")
+            out = _extraire_json(raw)
+            if not out or not out.get("reponse_ia"):
+                clean_text = re.sub(r"```(?:json)?|```", "", raw).strip()
+                if clean_text and not clean_text.startswith("{"):
+                    out = {"reponse_ia": clean_text, "nouvelles_etapes": []}
+                elif attempt == 0:
+                    print("[LLM] Empty response, retrying in 1s...")
+                    await asyncio.sleep(1)
+                    continue
+                else:
+                    is_fr = langue != "en"
+                    fallback = (f"Bien recu {prenom_actif or ''}. Peux-tu me redonner un peu plus de details ? L'API met un peu de temps a repondre."
+                                if is_fr else
+                                f"Got it {prenom_actif or ''}. Could you give me a bit more detail? The API is taking a moment to respond.")
+                    out = {"reponse_ia": fallback, "nouvelles_etapes": []}
 
-        out["reponse_ia"] = _clean_emojis(str(out.get("reponse_ia", "")))
-        out["prenom_detecte"] = prenom_detecte
-        if "nouvelles_etapes" not in out or not isinstance(out["nouvelles_etapes"], list):
-            out["nouvelles_etapes"] = []
+            out["reponse_ia"] = _clean_emojis(str(out.get("reponse_ia", "")))
+            out["prenom_detecte"] = prenom_detecte
+            if "nouvelles_etapes" not in out or not isinstance(out["nouvelles_etapes"], list):
+                out["nouvelles_etapes"] = []
 
-        msg_lower = (message_technicien or "").lower()
-        mots_visuels = ["ressemble", "c'est quoi", "comment savoir", "pas technicien", "debutant", "reconnaitre", "ou est", "forme", "look like", "what is"]
-        if any(m in msg_lower for m in mots_visuels):
-            comp_cible = (composants[0].get("nom") if composants and len(composants) > 0 else "Composant")
-            for c in (composants or []):
-                if c.get("nom", "").lower() in msg_lower:
-                    comp_cible = c.get("nom")
-                    break
-            out["guide_visuel"] = decrire_visuellement_composant_debutant(comp_cible, type_appareil, prenom_actif, langue=langue)
+            msg_lower = (message_technicien or "").lower()
+            mots_visuels = ["ressemble", "c'est quoi", "comment savoir", "pas technicien", "debutant", "reconnaitre", "ou est", "forme", "look like", "what is"]
+            if any(m in msg_lower for m in mots_visuels):
+                comp_cible = (composants[0].get("nom") if composants and len(composants) > 0 else "Composant")
+                for c in (composants or []):
+                    if c.get("nom", "").lower() in msg_lower:
+                        comp_cible = c.get("nom")
+                        break
+                out["guide_visuel"] = decrire_visuellement_composant_debutant(comp_cible, type_appareil, prenom_actif, langue=langue)
 
-        return out
-    except Exception as e:
-        print(f"[LLM] Conversation error: {e}")
-        raise
+            return out
+        except Exception as e:
+            print(f"[LLM] Conversation error (attempt {attempt+1}): {e}")
+            if attempt == 0:
+                await asyncio.sleep(1)
+                continue
+            is_fr = langue != "en"
+            return {
+                "reponse_ia": (f"Desole {prenom_actif or ''}, j'ai un petit souci technique. Reessaie dans quelques secondes, je suis toujours la !"
+                               if is_fr else
+                               f"Sorry {prenom_actif or ''}, I'm having a brief technical issue. Try again in a few seconds, I'm still here!"),
+                "prenom_detecte": prenom_detecte,
+                "nouvelles_etapes": [],
+                "proposer_appel_video": False
+            }
 
 
 async def decomposer_etape(instruction: str, type_appareil: str, langue: str = "fr") -> dict:
