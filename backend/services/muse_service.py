@@ -16,37 +16,11 @@ META_API_URL = os.getenv("META_API_URL", "https://api.meta.ai/v1").strip().rstri
 META_VISION_MODEL = os.getenv("META_VISION_MODEL", "muse-spark-1.3").strip()
 META_TEXT_MODEL = os.getenv("META_TEXT_MODEL", "muse-spark-1.3").strip()
 
-FALLBACK_API_KEY = os.getenv("FALLBACK_API_KEY", os.getenv("GROQ_API_KEY", "")).strip()
-FALLBACK_API_URL = os.getenv("FALLBACK_API_URL", "https://api.together.xyz/v1").strip().rstrip("/")
-FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "meta-llama/Llama-4-Scout-17B-16E-Instruct").strip()
-
-
 TIMEOUT = 60
 
 
 def _is_api_configured() -> bool:
-    return (bool(META_API_KEY) and META_API_KEY != "your_meta_api_key_here") or bool(FALLBACK_API_KEY)
-
-
-def _get_api_config(model_override=None):
-    if META_API_KEY and META_API_KEY != "your_meta_api_key_here":
-        return (
-            META_API_URL,
-            {"Authorization": f"Bearer {META_API_KEY}", "Content-Type": "application/json"},
-            model_override,
-            True
-        )
-    return None
-
-def _get_fallback_config():
-    if FALLBACK_API_KEY:
-        return (
-            FALLBACK_API_URL,
-            {"Authorization": f"Bearer {FALLBACK_API_KEY}", "Content-Type": "application/json"},
-            FALLBACK_MODEL,
-            False
-        )
-    return None
+    return bool(META_API_KEY) and META_API_KEY != "your_meta_api_key_here"
 
 
 def _headers() -> dict:
@@ -102,71 +76,44 @@ def extraire_prenom_message(texte: str) -> str:
 
 async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -> str:
     if not _is_api_configured():
-        print("[LLM] API not configured!")
-        return ""
-    configs = []
-    meta = _get_api_config(model or META_TEXT_MODEL)
-    if meta:
-        configs.append(meta)
-    groq = _get_fallback_config()
-    if groq:
-        configs.append(groq)
-    if not configs:
         return ""
     async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        for api_url, headers, used_model, is_meta in configs:
-            url = f"{api_url}/chat/completions"
-            try:
-                resp = await client.post(url, headers=headers, json={
-                    "model": used_model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": 0.7,
-                })
-                if resp.status_code == 200:
-                    provider = "Meta" if is_meta else "Fallback"
-                    print(f"[LLM] {provider} OK ({used_model})")
-                    return resp.json()["choices"][0]["message"].get("content") or ""
-                print(f"[LLM] {'Meta' if is_meta else 'Fallback'} error {resp.status_code}: {resp.text[:300]}")
-            except Exception as e:
-                print(f"[LLM] {'Meta' if is_meta else 'Fallback'} exception: {type(e).__name__}: {e}")
-    raise ValueError("All LLM providers failed")
+        resp = await client.post(
+            f"{META_API_URL}/chat/completions",
+            headers=_headers(),
+            json={
+                "model": model or META_TEXT_MODEL,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": 0.7,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"].get("content") or ""
 
 
 async def _call_llm_vision(prompt: str, image_base64: str, max_tokens: int = 4000) -> str:
     if not _is_api_configured() or not image_base64:
         return ""
     b64 = image_base64.split(",", 1)[1] if "," in image_base64 else image_base64
-    vision_msg = [{"role": "user", "content": [
-        {"type": "text", "text": prompt},
-        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
-    ]}]
-    configs = []
-    meta = _get_api_config(META_VISION_MODEL)
-    if meta:
-        configs.append(meta)
-    groq = _get_fallback_config()
-    if groq:
-        configs.append(groq)
-    if not configs:
-        return ""
     async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        for api_url, headers, used_model, is_meta in configs:
-            url = f"{api_url}/chat/completions"
-            try:
-                resp = await client.post(url, headers=headers, json={
-                    "model": used_model,
-                    "messages": vision_msg,
-                    "max_tokens": max_tokens,
-                })
-                if resp.status_code == 200:
-                    provider = "Meta" if is_meta else "Fallback"
-                    print(f"[LLM-Vision] {provider} OK ({used_model})")
-                    return resp.json()["choices"][0]["message"].get("content") or ""
-                print(f"[LLM-Vision] {'Meta' if is_meta else 'Fallback'} error {resp.status_code}: {resp.text[:300]}")
-            except Exception as e:
-                print(f"[LLM-Vision] {'Meta' if is_meta else 'Fallback'} exception: {e}")
-    raise ValueError("All LLM vision providers failed")
+        resp = await client.post(
+            f"{META_API_URL}/chat/completions",
+            headers=_headers(),
+            json={
+                "model": META_VISION_MODEL,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
+                    ]
+                }],
+                "max_tokens": max_tokens,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"].get("content") or ""
 
 
 def chercher_photo_reelle_internet(terme_recherche: str, svg_type: str) -> str:
