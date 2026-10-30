@@ -14,7 +14,7 @@ from backend.database.database import engine, Base
 from backend.database import models
 
 try:
-    from backend.routes import camera, segmentation, diagnostic, history
+    from backend.routes import camera, segmentation, diagnostic, history, auth
     routes_disponibles = True
 except ImportError:
     routes_disponibles = False
@@ -36,9 +36,14 @@ app = FastAPI(
 # ---------------------------------------------------------------
 # CORS : Autoriser le frontend a communiquer avec le backend
 # ---------------------------------------------------------------
+render_url = os.getenv("RENDER_EXTERNAL_URL", "")
+allowed_origins = ["http://localhost:8000", "http://127.0.0.1:8000"]
+if render_url:
+    allowed_origins.append(render_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +57,7 @@ if routes_disponibles:
     app.include_router(segmentation.router, prefix="/api/segmentation", tags=["Segmentation SAM 2"])
     app.include_router(diagnostic.router,   prefix="/api/diagnostic",   tags=["Diagnostic Muse Spark"])
     app.include_router(history.router,      prefix="/api/history",      tags=["Historique"])
+    app.include_router(auth.router,         prefix="/api/auth",         tags=["Authentification"])
 
 # ---------------------------------------------------------------
 # Route de sante du serveur et de la base de donnees

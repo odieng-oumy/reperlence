@@ -247,3 +247,15 @@ def obtenir_memoire_utilisateur(db: Session, utilisateur_id: str, exclure_sessio
         "nom_utilisateur": nom_trouve,
         "anciens_appareils": anciens_appareils[:5]
     }
+
+
+def migrer_sessions_utilisateur(db: Session, ancien_uid: str, nouveau_uid: str, nom_utilisateur: str = None):
+    sessions = db.query(models.SessionReparation).filter(
+        models.SessionReparation.utilisateur_id == ancien_uid
+    ).all()
+    for s in sessions:
+        s.utilisateur_id = nouveau_uid
+        if nom_utilisateur:
+            s.nom_utilisateur = nom_utilisateur
+    db.commit()
+    return len(sessions)
