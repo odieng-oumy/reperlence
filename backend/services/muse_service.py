@@ -11,10 +11,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-META_API_KEY = os.getenv("META_API_KEY", "")
-META_API_URL = os.getenv("META_API_URL", "https://api.meta.ai/v1")
-META_VISION_MODEL = os.getenv("META_VISION_MODEL", "muse-spark-1.3")
-META_TEXT_MODEL = os.getenv("META_TEXT_MODEL", "muse-spark-1.3")
+META_API_KEY = os.getenv("META_API_KEY", "").strip()
+META_API_URL = os.getenv("META_API_URL", "https://api.llama.com/v1").strip().rstrip("/")
+META_VISION_MODEL = os.getenv("META_VISION_MODEL", "Muse-Spark-1.3").strip()
+META_TEXT_MODEL = os.getenv("META_TEXT_MODEL", "Muse-Spark-1.3").strip()
+
+print(f"[CONFIG] API URL: {META_API_URL}")
+print(f"[CONFIG] API Key: {META_API_KEY[:8]}...{META_API_KEY[-4:] if len(META_API_KEY) > 12 else '???'} (len={len(META_API_KEY)})")
+print(f"[CONFIG] Models: text={META_TEXT_MODEL}, vision={META_VISION_MODEL}")
 
 TIMEOUT = 60
 
@@ -74,18 +78,23 @@ def extraire_prenom_message(texte: str) -> str:
 
 async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -> str:
     if not _is_api_configured():
+        print("[LLM] API not configured!")
         return ""
+    url = f"{META_API_URL}/chat/completions"
+    used_model = model or META_TEXT_MODEL
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         resp = await client.post(
-            f"{META_API_URL}/chat/completions",
+            url,
             headers=_headers(),
             json={
-                "model": model or META_TEXT_MODEL,
+                "model": used_model,
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "temperature": 0.7,
             },
         )
+        if resp.status_code != 200:
+            print(f"[LLM] Error {resp.status_code} from {url} model={used_model}: {resp.text[:500]}")
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"].get("content") or ""
 
