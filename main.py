@@ -82,8 +82,7 @@ async def lister_modeles_groq():
             resp = await client.get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {groq_key}"})
             if resp.status_code == 200:
                 models = [m["id"] for m in resp.json().get("data", [])]
-                llama = [m for m in models if "llama" in m.lower()]
-                return {"llama_models": sorted(llama), "total": len(models)}
+                return {"all_models": sorted(models), "total": len(models)}
             return {"status": resp.status_code, "body": resp.text[:500]}
     except Exception as e:
         return {"error": str(e)}
