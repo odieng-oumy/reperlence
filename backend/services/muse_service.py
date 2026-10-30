@@ -20,9 +20,6 @@ FALLBACK_API_KEY = os.getenv("FALLBACK_API_KEY", os.getenv("GROQ_API_KEY", "")).
 FALLBACK_API_URL = os.getenv("FALLBACK_API_URL", "https://api.together.xyz/v1").strip().rstrip("/")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "meta-llama/Llama-4-Scout-17B-16E-Instruct").strip()
 
-print(f"[CONFIG] Meta API: {META_API_URL} | key={META_API_KEY[:8]}... (len={len(META_API_KEY)})")
-print(f"[CONFIG] Fallback: {FALLBACK_API_URL} model={FALLBACK_MODEL} {'configured' if FALLBACK_API_KEY else 'not set'}")
-print(f"[CONFIG] Models: text={META_TEXT_MODEL}, vision={META_VISION_MODEL}")
 
 TIMEOUT = 60
 
