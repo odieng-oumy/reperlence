@@ -28,17 +28,25 @@ function getInitialesUtilisateur() {
 }
 
 // --- GOOGLE SIGN-IN ---
-async function initGoogleAuth() {
+async function initGoogleAuth(retries) {
+    retries = retries || 0;
     try {
-        const res = await fetch('/api/auth/config');
-        const data = await res.json();
-        if (!data.google_client_id) return;
-        window._googleClientId = data.google_client_id;
+        if (!window._googleClientId) {
+            const res = await fetch('/api/auth/config');
+            const data = await res.json();
+            if (!data.google_client_id) return;
+            window._googleClientId = data.google_client_id;
+        }
 
-        if (typeof google === 'undefined' || !google.accounts) return;
+        if (typeof google === 'undefined' || !google.accounts) {
+            if (retries < 10) {
+                setTimeout(() => initGoogleAuth(retries + 1), 500);
+            }
+            return;
+        }
 
         google.accounts.id.initialize({
-            client_id: data.google_client_id,
+            client_id: window._googleClientId,
             callback: onGoogleSignIn,
             auto_select: false
         });
@@ -50,6 +58,19 @@ async function initGoogleAuth() {
                 size: 'medium',
                 shape: 'pill',
                 text: 'signin_with',
+                locale: getLangue() === 'fr' ? 'fr' : 'en'
+            });
+        }
+
+        const profileBtn = document.getElementById('profile-google-login-btn');
+        if (profileBtn && !estConnecteGoogle()) {
+            profileBtn.innerHTML = '';
+            google.accounts.id.renderButton(profileBtn, {
+                theme: 'filled_black',
+                size: 'large',
+                shape: 'pill',
+                text: 'signin_with',
+                width: 280,
                 locale: getLangue() === 'fr' ? 'fr' : 'en'
             });
         }
