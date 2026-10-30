@@ -16,23 +16,22 @@ META_API_URL = os.getenv("META_API_URL", "https://api.meta.ai/v1").strip().rstri
 META_VISION_MODEL = os.getenv("META_VISION_MODEL", "muse-spark-1.3").strip()
 META_TEXT_MODEL = os.getenv("META_TEXT_MODEL", "muse-spark-1.3").strip()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-GROQ_API_URL = "https://api.groq.com/openai/v1"
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-4-scout-17b-16e-instruct").strip()
+FALLBACK_API_KEY = os.getenv("FALLBACK_API_KEY", os.getenv("GROQ_API_KEY", "")).strip()
+FALLBACK_API_URL = os.getenv("FALLBACK_API_URL", "https://api.together.xyz/v1").strip().rstrip("/")
+FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "meta-llama/Llama-4-Scout-17B-16E-Instruct").strip()
 
 print(f"[CONFIG] Meta API: {META_API_URL} | key={META_API_KEY[:8]}... (len={len(META_API_KEY)})")
-print(f"[CONFIG] Groq fallback: {'configured' if GROQ_API_KEY else 'not set'}")
+print(f"[CONFIG] Fallback: {FALLBACK_API_URL} model={FALLBACK_MODEL} {'configured' if FALLBACK_API_KEY else 'not set'}")
 print(f"[CONFIG] Models: text={META_TEXT_MODEL}, vision={META_VISION_MODEL}")
 
 TIMEOUT = 60
 
 
 def _is_api_configured() -> bool:
-    return (bool(META_API_KEY) and META_API_KEY != "your_meta_api_key_here") or bool(GROQ_API_KEY)
+    return (bool(META_API_KEY) and META_API_KEY != "your_meta_api_key_here") or bool(FALLBACK_API_KEY)
 
 
 def _get_api_config(model_override=None):
-    """Retourne (url, headers, model) — Meta en priorite, Groq en fallback."""
     if META_API_KEY and META_API_KEY != "your_meta_api_key_here":
         return (
             META_API_URL,
@@ -42,12 +41,12 @@ def _get_api_config(model_override=None):
         )
     return None
 
-def _get_groq_config():
-    if GROQ_API_KEY:
+def _get_fallback_config():
+    if FALLBACK_API_KEY:
         return (
-            GROQ_API_URL,
-            {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-            GROQ_MODEL,
+            FALLBACK_API_URL,
+            {"Authorization": f"Bearer {FALLBACK_API_KEY}", "Content-Type": "application/json"},
+            FALLBACK_MODEL,
             False
         )
     return None
@@ -110,7 +109,7 @@ async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -
     meta = _get_api_config(model or META_TEXT_MODEL)
     if meta:
         configs.append(meta)
-    groq = _get_groq_config()
+    groq = _get_fallback_config()
     if groq:
         configs.append(groq)
     if not configs:
@@ -126,12 +125,12 @@ async def _call_llm(messages: list, model: str = None, max_tokens: int = 4000) -
                     "temperature": 0.7,
                 })
                 if resp.status_code == 200:
-                    provider = "Meta" if is_meta else "Groq"
+                    provider = "Meta" if is_meta else "Fallback"
                     print(f"[LLM] {provider} OK ({used_model})")
                     return resp.json()["choices"][0]["message"].get("content") or ""
-                print(f"[LLM] {'Meta' if is_meta else 'Groq'} error {resp.status_code}: {resp.text[:300]}")
+                print(f"[LLM] {'Meta' if is_meta else 'Fallback'} error {resp.status_code}: {resp.text[:300]}")
             except Exception as e:
-                print(f"[LLM] {'Meta' if is_meta else 'Groq'} exception: {e}")
+                print(f"[LLM] {'Meta' if is_meta else 'Fallback'} exception: {e}")
     raise ValueError("All LLM providers failed")
 
 
@@ -147,7 +146,7 @@ async def _call_llm_vision(prompt: str, image_base64: str, max_tokens: int = 400
     meta = _get_api_config(META_VISION_MODEL)
     if meta:
         configs.append(meta)
-    groq = _get_groq_config()
+    groq = _get_fallback_config()
     if groq:
         configs.append(groq)
     if not configs:
@@ -162,12 +161,12 @@ async def _call_llm_vision(prompt: str, image_base64: str, max_tokens: int = 400
                     "max_tokens": max_tokens,
                 })
                 if resp.status_code == 200:
-                    provider = "Meta" if is_meta else "Groq"
+                    provider = "Meta" if is_meta else "Fallback"
                     print(f"[LLM-Vision] {provider} OK ({used_model})")
                     return resp.json()["choices"][0]["message"].get("content") or ""
-                print(f"[LLM-Vision] {'Meta' if is_meta else 'Groq'} error {resp.status_code}: {resp.text[:300]}")
+                print(f"[LLM-Vision] {'Meta' if is_meta else 'Fallback'} error {resp.status_code}: {resp.text[:300]}")
             except Exception as e:
-                print(f"[LLM-Vision] {'Meta' if is_meta else 'Groq'} exception: {e}")
+                print(f"[LLM-Vision] {'Meta' if is_meta else 'Fallback'} exception: {e}")
     raise ValueError("All LLM vision providers failed")
 
 
