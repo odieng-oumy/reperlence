@@ -498,7 +498,7 @@ async function envoyerMessageLiveChat() {
             sessionId = data.session_id;
         }
 
-        if (data && data.prenom_detecte) {
+        if (data && data.prenom_detecte && !estConnecteGoogle()) {
             localStorage.setItem('rl_user_name', data.prenom_detecte);
             actualiserAffichageUtilisateur();
         }
