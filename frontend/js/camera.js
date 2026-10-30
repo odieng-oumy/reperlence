@@ -2334,7 +2334,11 @@ async function verifierRepriseSession() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', verifierRepriseSession);
+document.addEventListener('DOMContentLoaded', () => {
+    verifierRepriseSession();
+    actualiserEtatConnexion();
+    if (!estConnecteGoogle()) initGoogleAuth();
+});
 
 // =============================================================
 // SUPER-POUVOIR : VÉRIFICATION VISUELLE AVANT / APRÈS D'UNE ÉTAPE

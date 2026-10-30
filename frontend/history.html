@@ -7,8 +7,9 @@
     <link rel="icon" type="image/svg+xml" href="/static/assets/logo-repairlens.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/main.css?v=7">
+    <link rel="stylesheet" href="/static/css/main.css?v=11">
     <link rel="stylesheet" href="/static/css/history.css?v=7">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -21,6 +22,8 @@
             <div class="history-header">
                 <h1 class="history-main-title" data-i18n="repair_history_title">Repair History</h1>
                 <div class="top-actions">
+                    <div id="google-signin-btn"></div>
+                    <div id="google-user-info" style="display:none;align-items:center;gap:6px;"></div>
                     <button type="button" class="lang-switch" id="btn-lang-switch" onclick="basculerLangue()">EN | FR</button>
                     <button type="button" class="icon-circle-btn" onclick="afficherOngletHistory('profile')" title="Profile Settings"><svg style="width:16px;height:16px;vertical-align:middle;fill:currentColor;" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></button>
                 </div>
@@ -92,6 +95,13 @@
                         Save Profile
                     </button>
                 </div>
+
+                <div style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06);">
+                    <label style="font-size:12px; font-weight:700; color:var(--text-gray); display:block; margin-bottom:10px;">
+                        CONNEXION GOOGLE
+                    </label>
+                    <div id="profile-google-section"></div>
+                </div>
             </div>
         </section>
 
@@ -116,7 +126,7 @@
         </div>
     </nav>
 
-    <script src="/static/js/app.js?v=6"></script>
+    <script src="/static/js/app.js?v=23"></script>
     <script src="/static/js/history.js?v=6"></script>
 </body>
 </html>

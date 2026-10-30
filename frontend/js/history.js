@@ -8,8 +8,9 @@ let filtreStatutActif = 'tous';
 
 async function initialiserPageHistorique() {
     appliquerTraductionsPage();
+    actualiserEtatConnexion();
+    if (!estConnecteGoogle()) initGoogleAuth();
 
-    // Vérifier si l'URL demande d'ouvrir directement l'onglet Profile (?tab=profile)
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') === 'profile') {
         afficherOngletHistory('profile');
@@ -139,11 +140,22 @@ async function supprimerSessionHistorique(id) {
 function remplirInfosProfil() {
     const nom = getNomUtilisateur();
     const uid = getUtilisateurId();
+    const photo = localStorage.getItem('repairlens_photo');
+    const connected = estConnecteGoogle();
+    const isFr = getLangue() === 'fr';
 
-    document.getElementById('profile-big-initials').textContent = getInitialesUtilisateur();
+    const avatarEl = document.getElementById('profile-big-initials');
+    if (photo && connected) {
+        avatarEl.innerHTML = `<img src="${photo}" alt="${nom}" class="google-avatar" style="width:64px;height:64px;" referrerpolicy="no-referrer">`;
+    } else {
+        avatarEl.textContent = getInitialesUtilisateur();
+    }
     document.getElementById('profile-display-name').textContent = nom;
-    document.getElementById('profile-uid-text').textContent     = `Personal Workspace ID: ${uid}`;
-    document.getElementById('input-profile-name').value         = nom;
+    const email = localStorage.getItem('repairlens_email') || '';
+    document.getElementById('profile-uid-text').textContent = connected
+        ? email
+        : `Personal Workspace ID: ${uid}`;
+    document.getElementById('input-profile-name').value = nom;
 
     const total     = toutesMesSessions.length;
     const enCours   = toutesMesSessions.filter(s => s.statut === 'en_cours').length;
@@ -152,6 +164,38 @@ function remplirInfosProfil() {
     document.getElementById('stat-total-count').textContent     = total;
     document.getElementById('stat-progress-count').textContent  = enCours;
     document.getElementById('stat-completed-count').textContent = terminees;
+
+    const googleSection = document.getElementById('profile-google-section');
+    if (googleSection) {
+        if (connected) {
+            googleSection.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,240,255,0.05);border:1px solid rgba(0,240,255,0.15);border-radius:12px;">
+                    ${photo ? `<img src="${photo}" class="google-avatar" referrerpolicy="no-referrer">` : ''}
+                    <div style="flex:1;">
+                        <div style="font-weight:700;color:var(--text-white);font-size:14px;">${nom}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">${email}</div>
+                    </div>
+                    <button type="button" class="google-logout-btn" onclick="deconnexionGoogle()" style="width:34px;height:34px;" title="${isFr ? 'Se deconnecter' : 'Sign out'}">
+                        <svg style="width:16px;height:16px;fill:currentColor;" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                    </button>
+                </div>
+                <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">${isFr ? 'Ton historique est synchronise avec ton compte Google.' : 'Your history is synced with your Google account.'}</p>
+            `;
+        } else {
+            googleSection.innerHTML = `
+                <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+                    ${isFr ? 'Connecte-toi pour retrouver ton historique sur n\'importe quel appareil.' : 'Sign in to access your repair history from any device.'}
+                </p>
+                <div id="profile-google-btn"></div>
+            `;
+            if (typeof google !== 'undefined' && google.accounts && window._googleClientId) {
+                google.accounts.id.renderButton(
+                    document.getElementById('profile-google-btn'),
+                    { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', width: 280, locale: isFr ? 'fr' : 'en' }
+                );
+            }
+        }
+    }
 }
 
 function sauvegarderProfilNom() {

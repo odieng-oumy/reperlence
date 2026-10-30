@@ -7,8 +7,9 @@
     <link rel="icon" type="image/svg+xml" href="/static/assets/logo-repairlens.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/main.css?v=10">
-    <link rel="stylesheet" href="/static/css/camera.css?v=10">
+    <link rel="stylesheet" href="/static/css/main.css?v=11">
+    <link rel="stylesheet" href="/static/css/camera.css?v=11">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -78,6 +79,8 @@
                 <button type="button" class="icon-circle-btn" onclick="basculerSidebarDiscussions(true)" title="Discussions récentes (ChatGPT sidebar)"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></button>
                 <span class="screen-title-main" data-i18n="new_inspection_title">New Inspection</span>
                 <div style="display:flex; gap:6px; align-items:center;">
+                    <div id="google-signin-btn"></div>
+                    <div id="google-user-info" style="display:none;align-items:center;gap:6px;"></div>
                     <button type="button" class="lang-switch" id="btn-lang-switch" onclick="basculerLangue()">EN | FR</button>
                     <a href="/" class="icon-circle-btn" title="Home"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></a>
                 </div>
@@ -608,7 +611,7 @@
     <!-- Modèle Vision Temps Réel (Détection Personne / Outil / Appareil en direct) -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-    <script src="/static/js/app.js?v=22"></script>
+    <script src="/static/js/app.js?v=23"></script>
     <script src="/static/js/camera.js?v=22"></script>
 </body>
 </html>

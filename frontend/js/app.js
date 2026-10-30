@@ -4,6 +4,8 @@
 
 // --- 1. GESTION DE L'IDENTIFIANT UTILISATEUR PERSONNEL ---
 function getUtilisateurId() {
+    const googleUid = localStorage.getItem('repairlens_google_uid');
+    if (googleUid) return googleUid;
     let uid = localStorage.getItem('repairlens_uid');
     if (!uid) {
         uid = 'user_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
@@ -12,13 +14,134 @@ function getUtilisateurId() {
     return uid;
 }
 
+function estConnecteGoogle() {
+    return Boolean(localStorage.getItem('repairlens_google_uid'));
+}
+
 function getNomUtilisateur() {
-    return localStorage.getItem('repairlens_username') || 'Technicien';
+    return localStorage.getItem('repairlens_username') || localStorage.getItem('rl_user_name') || 'Technicien';
 }
 
 function getInitialesUtilisateur() {
     const nom = getNomUtilisateur().trim();
     return nom ? nom.substring(0, 2).toUpperCase() : 'RL';
+}
+
+// --- GOOGLE SIGN-IN ---
+async function initGoogleAuth() {
+    try {
+        const res = await fetch('/api/auth/config');
+        const data = await res.json();
+        if (!data.google_client_id) return;
+        window._googleClientId = data.google_client_id;
+
+        if (typeof google === 'undefined' || !google.accounts) return;
+
+        google.accounts.id.initialize({
+            client_id: data.google_client_id,
+            callback: onGoogleSignIn,
+            auto_select: false
+        });
+
+        const btnContainer = document.getElementById('google-signin-btn');
+        if (btnContainer && !estConnecteGoogle()) {
+            google.accounts.id.renderButton(btnContainer, {
+                theme: 'filled_black',
+                size: 'medium',
+                shape: 'pill',
+                text: 'signin_with',
+                locale: getLangue() === 'fr' ? 'fr' : 'en'
+            });
+        }
+    } catch (e) {
+        console.log('[AUTH] Google Sign-In not available:', e.message);
+    }
+}
+
+async function onGoogleSignIn(response) {
+    try {
+        const oldUid = localStorage.getItem('repairlens_uid') || '';
+        const res = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential, old_uid: oldUid })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.utilisateur_id) {
+            console.error('[AUTH] Google login failed:', data);
+            return;
+        }
+
+        localStorage.setItem('repairlens_google_uid', data.utilisateur_id);
+        localStorage.setItem('repairlens_username', data.nom);
+        localStorage.setItem('rl_user_name', data.nom.split(' ')[0]);
+        if (data.email) localStorage.setItem('repairlens_email', data.email);
+        if (data.photo) localStorage.setItem('repairlens_photo', data.photo);
+
+        actualiserEtatConnexion();
+        const isFr = getLangue() === 'fr';
+        afficherToast(isFr ? `Bienvenue ${data.nom.split(' ')[0]} !` : `Welcome ${data.nom.split(' ')[0]}!`);
+
+        if (typeof chargerPageAccueil === 'function') chargerPageAccueil();
+        if (typeof chargerHistorique === 'function') chargerHistorique();
+    } catch (e) {
+        console.error('[AUTH] Error:', e);
+    }
+}
+
+function deconnexionGoogle() {
+    localStorage.removeItem('repairlens_google_uid');
+    localStorage.removeItem('repairlens_email');
+    localStorage.removeItem('repairlens_photo');
+    localStorage.removeItem('repairlens_username');
+    localStorage.removeItem('rl_user_name');
+    localStorage.removeItem('repairlens_uid');
+
+    if (typeof google !== 'undefined' && google.accounts) {
+        google.accounts.id.disableAutoSelect();
+    }
+    actualiserEtatConnexion();
+    const isFr = getLangue() === 'fr';
+    afficherToast(isFr ? 'Deconnecte. Ton historique reste accessible en te reconnectant.' : 'Signed out. Your history is saved — sign in again to access it.');
+    if (typeof chargerPageAccueil === 'function') chargerPageAccueil();
+    if (typeof chargerHistorique === 'function') chargerHistorique();
+}
+
+function actualiserEtatConnexion() {
+    const connected = estConnecteGoogle();
+    const btnGoogle = document.getElementById('google-signin-btn');
+    const zoneUser = document.getElementById('google-user-info');
+    const avatarBadge = document.getElementById('user-avatar-badge');
+
+    if (connected) {
+        const nom = getNomUtilisateur();
+        const photo = localStorage.getItem('repairlens_photo');
+
+        if (btnGoogle) btnGoogle.style.display = 'none';
+        if (zoneUser) {
+            zoneUser.style.display = 'flex';
+            zoneUser.innerHTML = `
+                ${photo
+                    ? `<img src="${photo}" alt="${nom}" class="google-avatar" referrerpolicy="no-referrer">`
+                    : `<span class="avatar-btn">${getInitialesUtilisateur()}</span>`}
+                <button type="button" class="google-logout-btn" onclick="deconnexionGoogle()" title="${getLangue() === 'fr' ? 'Se deconnecter' : 'Sign out'}">
+                    <svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                </button>
+            `;
+        }
+        if (avatarBadge) {
+            if (photo) {
+                avatarBadge.innerHTML = `<img src="${photo}" alt="${nom}" class="google-avatar" referrerpolicy="no-referrer">`;
+            } else {
+                avatarBadge.textContent = getInitialesUtilisateur();
+            }
+        }
+    } else {
+        if (btnGoogle) btnGoogle.style.display = 'block';
+        if (zoneUser) { zoneUser.style.display = 'none'; zoneUser.innerHTML = ''; }
+        if (avatarBadge) avatarBadge.textContent = 'RL';
+        initGoogleAuth();
+    }
 }
 
 // Notification Toast élégante intégrée à l'application (remplace alert())
@@ -424,4 +547,8 @@ window.rafraichirVueActuelle = function() {
     }
 };
 
-document.addEventListener('DOMContentLoaded', chargerPageAccueil);
+document.addEventListener('DOMContentLoaded', () => {
+    chargerPageAccueil();
+    actualiserEtatConnexion();
+    if (!estConnecteGoogle()) initGoogleAuth();
+});
