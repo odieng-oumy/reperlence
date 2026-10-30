@@ -85,9 +85,11 @@ def extraire_prenom_message(texte: str) -> str:
     ]
     mots_exclus = {
         "pas", "un", "une", "le", "la", "les", "en", "dans", "sur", "tres", "très",
+        "mon", "ma", "mes", "ton", "ta", "tes", "son", "sa", "ses", "ce", "cette",
         "bloque", "bloqué", "cassé", "casse", "panne", "ici", "bien", "prêt", "pret",
         "not", "here", "ready", "stuck", "broken", "trying", "debutant", "débutant",
-        "technicien", "technicienne", "novice", "perdu", "perdue"
+        "technicien", "technicienne", "novice", "perdu", "perdue",
+        "the", "this", "that", "just", "very", "really", "having", "some"
     }
     for motif in motifs:
         match = re.search(motif, texte, re.IGNORECASE)
