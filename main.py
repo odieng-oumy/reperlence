@@ -74,16 +74,27 @@ def verification_serveur():
 @app.get("/api/debug/models")
 async def lister_modeles_api():
     import httpx
-    api_url = os.getenv("META_API_URL", "").strip().rstrip("/")
     api_key = os.getenv("META_API_KEY", "").strip()
-    if not api_url or not api_key:
+    if not api_key:
         return {"error": "API not configured"}
-    try:
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-            resp = await client.get(f"{api_url}/models", headers={"Authorization": f"Bearer {api_key}"})
-            return {"status": resp.status_code, "url": f"{api_url}/models", "body": resp.json() if resp.status_code == 200 else resp.text[:1000]}
-    except Exception as e:
-        return {"error": str(e)}
+    results = {}
+    urls = ["https://api.meta.ai/v1", "https://api.llama.com/v1"]
+    headers_variants = [
+        {"name": "Bearer", "headers": {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}},
+        {"name": "x-api-key", "headers": {"x-api-key": api_key, "Content-Type": "application/json"}},
+    ]
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        for base_url in urls:
+            for hv in headers_variants:
+                key = f"{base_url} ({hv['name']})"
+                try:
+                    resp = await client.get(f"{base_url}/models", headers=hv["headers"])
+                    body = resp.json() if resp.status_code == 200 else resp.text[:500]
+                    model_count = len(body.get("data", [])) if isinstance(body, dict) else "N/A"
+                    results[key] = {"status": resp.status_code, "models": model_count, "body": body}
+                except Exception as e:
+                    results[key] = {"error": str(e)}
+    return results
 
 # ---------------------------------------------------------------
 # Servir les fichiers statiques du frontend (si presents)
