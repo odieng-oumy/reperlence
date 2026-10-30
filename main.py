@@ -71,18 +71,6 @@ def verification_serveur():
         "version": "1.0.0"
     }
 
-@app.get("/api/debug/free-models")
-async def free_models():
-    import httpx
-    try:
-        async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.get("https://openrouter.ai/api/v1/models")
-            models = r.json().get("data", [])
-            free = [m["id"] for m in models if ":free" in m.get("id", "")]
-            return {"free_models": sorted(free)}
-    except Exception as e:
-        return {"error": str(e)}
-
 # ---------------------------------------------------------------
 # Servir les fichiers statiques du frontend (si presents)
 # ---------------------------------------------------------------
