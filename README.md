@@ -8,6 +8,22 @@
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/home.png" width="250" alt="Home">
+  <img src="screenshots/newInspection.png" width="250" alt="New Inspection">
+  <img src="screenshots/diagnosis.png" width="250" alt="AI Diagnosis">
+</p>
+<p align="center">
+  <img src="screenshots/diagnostique.png" width="250" alt="Diagnostic Details">
+  <img src="screenshots/guided.png" width="250" alt="Guided Repair">
+  <img src="screenshots/history.png" width="250" alt="History">
+  <img src="screenshots/profile.png" width="250" alt="Profile">
+</p>
+
+---
+
 ## The Problem
 
 Over **50 million tons** of electronic waste are generated each year ([UN Global E-waste Monitor 2024](https://ewastemonitor.info/)). Most broken devices — fans, coffee makers, small appliances — could be repaired with basic guidance. But everyday users can't identify faulty parts, understand technical jargon, or know where to start.
